@@ -69,8 +69,6 @@ import org.apache.commons.logging.Log;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import de.escidoc.core.common.util.string.StringUtility;
-
 /**
  *
  * @author Doug Davis (dug@us.ibm.com)
@@ -1754,9 +1752,8 @@ public class SRWServlet extends AxisServlet {
         if (cookie != null) {
             final String handle = cookie.getValue();
             if (log.isDebugEnabled()) {
-                log.debug(
-                    StringUtility.concatenate("Received handle in cookie: ",
-                        handle));
+                log.debug("Received handle in cookie: " +
+                        handle);
             }
             return handle;
         }

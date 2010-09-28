@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src/java"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/J2SE-1.5"/>
 	<classpathentry kind="lib" path="lib/axis.jar"/>
 	<classpathentry kind="lib" path="lib/commons-discovery.jar"/>
 	<classpathentry kind="lib" path="lib/commons-logging.jar"/>
@@ -16,6 +15,10 @@
 	<classpathentry kind="lib" path="lib/xalan.jar"/>
 	<classpathentry kind="lib" path="lib/escidoc/spring-security-core-2.0.2.jar"/>
 	<classpathentry kind="lib" path="lib/escidoc/spring-security-core-tiger-2.0.2.jar"/>
+	<classpathentry kind="lib" path="lib/escidoc/httpclient-4.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/escidoc/httpcore-4.1-beta1.jar"/>
+	<classpathentry kind="lib" path="lib/escidoc/jsr173_1.0_api.jar"/>
 	<classpathentry kind="lib" path="lib/escidoc/common.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
