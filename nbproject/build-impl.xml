@@ -475,14 +475,33 @@ exists or setup the property manually. For example like this:
             <fileset dir="${build.web.dir}"/>
         </jar>
     </target>
-    <target depends="init,compile,compile-jsps,-pre-dist" if="do.war.package.with.custom.manifest" name="-do-dist-with-manifest">
+    <target depends="init,compile,compile-jsps,-pre-dist,sources" if="do.war.package.with.custom.manifest" name="-do-dist-with-manifest">
         <dirname file="${dist.war}" property="dist.jar.dir"/>
         <mkdir dir="${dist.jar.dir}"/>
         <jar compress="${jar.compress}" jarfile="${dist.war}" manifest="${build.meta.inf.dir}/MANIFEST.MF">
             <fileset dir="${build.web.dir}"/>
         </jar>
     </target>
-    <target depends="init,compile,compile-jsps,-pre-dist" if="do.tmp.war.package.without.custom.manifest" name="-do-tmp-dist-without-manifest">
+    <target name="sources">
+    	<delete dir="${sources.dir}"/>
+        <mkdir dir="${sources.dir}"/>
+		<copy todir="${sources.dir}">
+			<fileset dir=".">
+		    	<exclude name="${build.dir}/*/**"/>
+		    	<exclude name="${dist.dir}/*/**"/>
+		    	<exclude name="${bin.dir}/**"/>
+		    	<exclude name="${sources.dir}/**"/>
+		    	<exclude name=".settings/**"/>
+		    	<exclude name=".classpath"/>
+		    	<exclude name=".project"/>
+		    	<exclude name="**/.svn"/>
+			</fileset>
+		</copy>
+        <zip zipfile="${dist.dir}/${sources.zip.name}"
+             basedir="${sources.dir}" includes="**"/>
+    	<delete dir="${sources.dir}"/>
+    </target>
+  <target depends="init,compile,compile-jsps,-pre-dist" if="do.tmp.war.package.without.custom.manifest" name="-do-tmp-dist-without-manifest">
         <dirname file="${dist.war}" property="dist.jar.dir"/>
         <mkdir dir="${dist.jar.dir}"/>
         <jar compress="${jar.compress}" jarfile="${dist.war}">
