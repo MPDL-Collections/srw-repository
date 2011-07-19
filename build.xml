@@ -69,6 +69,6 @@
         </jar>
         <delete file="d:/program files/Apache Software Foundation/Tomcat 5.5/webapps/SRW/WEB-INF/lib/SRW.jar"/>
         <delete file="dist/SRWSource.jar"/>
-        <jar jarfile="dist/SRWSource.jar" basedir="src/java" includes="**/*.java"/>
+        <!--jar jarfile="dist/SRWSource.jar" basedir="src/java" includes="**/*.java"/-->
         </target>
 </project>
