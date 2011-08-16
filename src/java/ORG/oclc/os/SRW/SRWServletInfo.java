@@ -280,7 +280,16 @@ public class SRWServletInfo {
             String propsfilePath = EscidocConfiguration.getInstance().get(
                     EscidocConfiguration.SEARCH_PROPERTIES_DIRECTORY, "search/config");
             if (!propsfilePath.equals("")) {
-                propsfilePath += "/";
+            	String escidocHome = EscidocConfiguration.getInstance().getEscidocHome();
+            	if (!escidocHome.isEmpty()) {
+            		if (!escidocHome.endsWith("/") && !propsfilePath.startsWith("/")) {
+            			escidocHome += "/";
+            		}
+            		propsfilePath = escidocHome + propsfilePath;
+            	}
+            	if (!propsfilePath.endsWith("/")) {
+                    propsfilePath += "/";
+            	}
             }
             propsfileName = propsfilePath + "SRWServer.props";
             log.info("Reading properties file: "+propsfileName);
