@@ -282,8 +282,12 @@ public class SRWServletInfo {
             if (!propsfilePath.equals("")) {
             	String escidocHome = EscidocConfiguration.getInstance().getEscidocHome();
             	if (!escidocHome.isEmpty()) {
-            		if (!escidocHome.endsWith("/") && !propsfilePath.startsWith("/")) {
+            		if (!escidocHome.endsWith("/")) {
             			escidocHome += "/";
+            		}
+            		escidocHome += "conf/";
+            		if (propsfilePath.startsWith("/")) {
+            			propsfilePath = propsfilePath.substring(1);
             		}
             		propsfilePath = escidocHome + propsfilePath;
             	}
