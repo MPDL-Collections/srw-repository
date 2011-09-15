@@ -458,6 +458,7 @@ public class SRWSoapBindingImpl implements SRWPort {
         }
         //MIH: Add handling of CQLSortNode//////////////////
         else if(node instanceof CQLSortNode) {
+        	return toOperandType(((CQLSortNode) node).subtree);
         }
         ////////////////////////////////////////////////////
         else {
