@@ -7,6 +7,8 @@
 
 package gov.loc.www.zing.srw.srw_bindings;
 
+import org.apache.axis.MessageContext;
+
 public class SRWSoapBindingStub extends org.apache.axis.client.Stub implements gov.loc.www.zing.srw.interfaces.SRWPort {
     private java.util.Vector cachedSerClasses = new java.util.Vector();
     private java.util.Vector cachedSerQNames = new java.util.Vector();
@@ -386,6 +388,41 @@ public class SRWSoapBindingStub extends org.apache.axis.client.Stub implements g
                 return (gov.loc.www.zing.srw.SearchRetrieveResponseType) _resp;
             } catch (java.lang.Exception _exception) {
                 return (gov.loc.www.zing.srw.SearchRetrieveResponseType) org.apache.axis.utils.JavaUtils.convert(_resp, gov.loc.www.zing.srw.SearchRetrieveResponseType.class);
+            }
+        }
+  } catch (org.apache.axis.AxisFault axisFaultException) {
+  throw axisFaultException;
+}
+    }
+
+    public gov.loc.www.zing.srw.utils.Stream searchRetrieveOperation(org.escidoc.core.domain.sru.SearchRetrieveRequestType body, MessageContext msgContext, String handle) throws java.rmi.RemoteException
+    {
+        if (super.cachedEndpoint == null) {
+            throw new org.apache.axis.NoEndPointException();
+        }
+        org.apache.axis.client.Call _call = createCall();
+        _call.setOperation(_operations[0]);
+        _call.setUseSOAPAction(true);
+        _call.setSOAPActionURI("");
+        _call.setEncodingStyle(null);
+        _call.setProperty(org.apache.axis.client.Call.SEND_TYPE_ATTR, Boolean.FALSE);
+        _call.setProperty(org.apache.axis.AxisEngine.PROP_DOMULTIREFS, Boolean.FALSE);
+        _call.setSOAPVersion(org.apache.axis.soap.SOAPConstants.SOAP11_CONSTANTS);
+        _call.setOperationName(new javax.xml.namespace.QName("", "SearchRetrieveOperation"));
+
+        setRequestHeaders(_call);
+        setAttachments(_call);
+ try {        java.lang.Object _resp = _call.invoke(new java.lang.Object[] {body});
+
+        if (_resp instanceof java.rmi.RemoteException) {
+            throw (java.rmi.RemoteException)_resp;
+        }
+        else {
+            extractAttachments(_call);
+            try {
+                return (gov.loc.www.zing.srw.utils.Stream) _resp;
+            } catch (java.lang.Exception _exception) {
+                return (gov.loc.www.zing.srw.utils.Stream) org.apache.axis.utils.JavaUtils.convert(_resp, gov.loc.www.zing.srw.utils.Stream.class);
             }
         }
   } catch (org.apache.axis.AxisFault axisFaultException) {

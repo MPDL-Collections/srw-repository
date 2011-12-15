@@ -24,6 +24,12 @@
 
 package ORG.oclc.os.SRW;
 
+import gov.loc.www.zing.srw.ExtraDataType;
+import gov.loc.www.zing.srw.SearchRetrieveRequestType;
+import gov.loc.www.zing.srw.srw_bindings.SRWSoapBindingImpl;
+import gov.loc.www.zing.srw.utils.IOUtils;
+import gov.loc.www.zing.srw.utils.Stream;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -35,9 +41,11 @@ import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.List;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -51,16 +59,17 @@ import org.apache.axis.Message;
 import org.apache.axis.MessageContext;
 import org.apache.axis.SOAPPart;
 import org.apache.axis.components.logger.LogFactory;
-import org.apache.axis.configuration.FileProvider;
 import org.apache.axis.description.OperationDesc;
 import org.apache.axis.description.ServiceDesc;
 import org.apache.axis.handlers.soap.SOAPService;
+import org.apache.axis.message.MessageElement;
 import org.apache.axis.security.servlet.ServletSecurityProvider;
 import org.apache.axis.transport.http.AxisHttpSession;
 import org.apache.axis.transport.http.AxisServlet;
 import org.apache.axis.transport.http.HTTPConstants;
 import org.apache.axis.transport.http.HTTPTransport;
 import org.apache.axis.transport.http.ServletEndpointContextImpl;
+import org.apache.axis.types.PositiveInteger;
 import org.apache.axis.utils.Admin;
 import org.apache.axis.utils.JavaUtils;
 import org.apache.axis.utils.Messages;
@@ -135,8 +144,7 @@ public class SRWServlet extends AxisServlet {
     protected String getJWSClassDir() { return jwsClassDir; }
 
     protected SRWServletInfo srwInfo=null;
-
-
+    
     /**
      * create a new servlet instance
      */
@@ -188,6 +196,7 @@ public class SRWServlet extends AxisServlet {
         } else {
             jwsClassDir = getDefaultJWSClassDir();
         }
+
     }
 
 @Override
@@ -1276,6 +1285,7 @@ public class SRWServlet extends AxisServlet {
       org.apache.axis.MessageContext msgContext, HttpServletRequest req,
       HttpServletResponse resp)
       throws org.apache.axis.AxisFault, IOException {
+    	SRWSoapBindingImpl soapBinding = new SRWSoapBindingImpl();
         long startTime=System.currentTimeMillis();
         servletLog.debug("enter processMethodRequest");
 //        log.info("at start: totalMemory="+rt.totalMemory()+", freeMemory="+rt.freeMemory());
@@ -1323,24 +1333,8 @@ public class SRWServlet extends AxisServlet {
             ///////////////////////////////////////////////
 
 
-            sb.append("<soap:Envelope ")
-              .append("xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" ")
-              .append("xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" ")
-              .append("xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">")
-              .append("<soap:Header>")
-              .append("<wsse:Security xmlns:wsse=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd\" soap:mustUnderstand=\"1\">")
-              .append("<wsse:UsernameToken>")
-              .append("<wsse:Username>eSciDocUser</wsse:Username>")
-              .append("<wsse:Password Type=\"http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-username-token-profile-1.0#PasswordText\">")
-              .append(getHandle(req))
-              .append("</wsse:Password>")
-              .append("</wsse:UsernameToken>")
-              .append("</wsse:Security>")
-              .append("</soap:Header>")
-              .append("<soap:Body xmlns:srw=\"http://www.loc.gov/zing/srw/\">")
-              .append("<srw:searchRetrieveRequest>")
-              .append("<srw:query>").append(encode(query)).append("</srw:query>");
-
+            org.escidoc.core.domain.sru.SearchRetrieveRequestType request = new org.escidoc.core.domain.sru.SearchRetrieveRequestType();
+            request.setQuery(query);
             Enumeration parms=req.getParameterNames();
             String extension, namespace, parm, t;
             while(parms.hasMoreElements()) {
@@ -1348,7 +1342,7 @@ public class SRWServlet extends AxisServlet {
                 if(parm.equals("sortKeys")) {
                     t=req.getParameter(parm);
                     if(t!=null)
-                        sb.append("<srw:sortKeys>").append(t).append("</srw:sortKeys>");
+                        request.setSortKeys(t);
                 }
                 else if(parm.equals("startRecord")) {
                     t=req.getParameter(parm);
@@ -1361,7 +1355,7 @@ public class SRWServlet extends AxisServlet {
                         catch(NumberFormatException e){
                             i=Integer.MAX_VALUE;
                         }
-                        sb.append("<srw:startRecord>").append(i).append("</srw:startRecord>");
+                        request.setStartRecord(new PositiveInteger(String.valueOf(i)));
                     }
                 }
                 else if(parm.equals("maximumRecords")) {
@@ -1376,18 +1370,18 @@ public class SRWServlet extends AxisServlet {
                             i=Integer.MAX_VALUE;
                         }
 
-                        sb.append("<srw:maximumRecords>").append(i).append("</srw:maximumRecords>");
+                        request.setMaximumRecords(new PositiveInteger(String.valueOf(i)));
                     } 
                 }
                 else if(parm.equals("recordSchema")) {
                     t=req.getParameter(parm);
                     if(t!=null)
-                        sb.append("<srw:recordSchema>").append(t).append("</srw:recordSchema>");
+                        request.setRecordSchema(t);
                 }
                 else if(parm.equals("recordPacking")) {
                     t=req.getParameter(parm);
                     if(t!=null)
-                        sb.append("<srw:recordPacking>").append(t).append("</srw:recordPacking>");
+                        request.setRecordPacking(t);
                 }
                 else if(parm.equals("resultSetTTL")) {
                     t=req.getParameter(parm);
@@ -1396,7 +1390,7 @@ public class SRWServlet extends AxisServlet {
                             i=Integer.parseInt(t);
                             if(i<0)
                                 i=Integer.MAX_VALUE;
-                            sb.append("<srw:resultSetTTL>").append(i).append("</srw:resultSetTTL>");
+                            request.setResultSetTTL(new PositiveInteger(String.valueOf(i)));
                         }
                         catch(NumberFormatException e){
                             servletLog.error("resultSetTTL="+t);
@@ -1406,111 +1400,52 @@ public class SRWServlet extends AxisServlet {
             }
             parms=req.getParameterNames(); // walk through them again
             boolean hasExtraRequestData=false;
+            List<MessageElement> messages = new ArrayList<MessageElement>();
             while(parms.hasMoreElements()) {
+            	ExtraDataType e = new ExtraDataType();
                 parm=(String)parms.nextElement();
                 servletLog.debug("parm="+parm);
                 extension=srwInfo.getExtension(parm);
                 servletLog.debug("extension="+extension);
                 if(extension!=null) {
-                    if(!hasExtraRequestData)
-                        sb.append("<srw:extraRequestData>");
-                    namespace=srwInfo.getNamespace(parm);
-                    sb.append("    <").append(extension).append(" xmlns=\"").append(namespace).append("\"");
                     t=req.getParameter(parm);
-                    if(t!=null && t.length()>0)
-                        sb.append(">").append(t).append("</").append(extension).append(">");
-                    else
-                        sb.append("/>");
+                    if(t!=null && t.length()>0) {
+                    	MessageElement message = new MessageElement();
+                    	message.setName(extension);
+                    	message.setValue(t);
+                    	messages.add(message);
+                    }
                     hasExtraRequestData=true;
                 }
             }
-            if(hasExtraRequestData) {
-                sb.append("    </srw:extraRequestData>");
-                servletLog.debug(sb.toString());
-            }
-            
-            
-            sb.append("</srw:searchRetrieveRequest></soap:Body></soap:Envelope>");
-            if(servletLog.isDebugEnabled()) {
-                servletLog.debug("request="+sb.toString());
-                servletLog.debug(Utilities.byteArrayToString(sb.toString().getBytes("UTF-8")));
-            }
-            msgContext.setProperty("sru", "");
-            AxisEngine engine=getEngine();
-            ByteArrayInputStream bais=new ByteArrayInputStream(sb.toString().getBytes("UTF-8"));
-            Message msg=new Message(bais, false);
-            msgContext.setRequestMessage(msg);
-            msgContext.setTargetService("SRW");
+            Stream response = null;
             try {
-                engine.invoke(msgContext);
+                response = soapBinding.searchRetrieveOperation(request, msgContext, getHandle(req));
             }
             catch(Exception e) {
                 servletLog.error(e, e);
             }
-            Message respMsg=msgContext.getResponseMessage();
-            if(respMsg!=null) {
-                javax.servlet.ServletOutputStream sos;
-                // code to strip SOAP stuff out.  Hope this can go away some day
-                String soapResponse=respMsg.getSOAPPartAsString();
-                if("APP".equals(req.getAttribute("service"))) {
-                    int start=soapResponse.indexOf("<recordData");
-                    if(start>=0) {
-                        String mimeType=(String)req.getAttribute("mime-type");
-                        if(mimeType!=null)
-                            resp.setContentType(mimeType);
-                        else
-                            resp.setContentType("text/xml");
-                        sos=resp.getOutputStream();
-                        start=soapResponse.indexOf('<', start+1);
-                        int stop=soapResponse.indexOf("</recordData>", start);
-                        soapResponse=cleanup(soapResponse.substring(start, stop)
-                            .toCharArray());
-    //                    soapResponse=soapResponse.substring(start, stop+25);
-                        SRWDatabase db=(SRWDatabase)msgContext.getProperty("db");
-                        //srwInfo.writeXmlHeader(writer, msgContext, req,
-                        //    db.searchStyleSheet);
-                        srwInfo.writeXmlHeader(sos, msgContext, req,
-                            db.searchStyleSheet);
-                        if(db.httpHeaderSetter!=null)
-                            db.httpHeaderSetter.setGetResponseHeaders(db.searchRequest, db.response, soapResponse, req, resp);
-                    }
-                    else { // this was an APP get, but we got nothing!
-                        resp.setContentType("text/html");
-                        sos=resp.getOutputStream();
-                        resp.setStatus(HttpURLConnection.HTTP_NOT_FOUND);
-                        soapResponse="";
-                    }
-                }
-                else {
-                    resp.setContentType("text/xml");
-                    sos=resp.getOutputStream();
-                    int start=soapResponse.indexOf("<searchRetrieveResponse");
-                    if(start>=0) {
-                        int stop=soapResponse.indexOf("</searchRetrieveResponse>");
-                        soapResponse=cleanup(soapResponse.substring(start, stop+25)
-                            .toCharArray());
-    //                    soapResponse=soapResponse.substring(start, stop+25);
-                        SRWDatabase db=(SRWDatabase)msgContext.getProperty("db");
-                        //srwInfo.writeXmlHeader(writer, msgContext, req,
-                        //    db.searchStyleSheet);
-                        srwInfo.writeXmlHeader(sos, msgContext, req,
-                            db.searchStyleSheet);
-                        if(db.httpHeaderSetter!=null)
-                            db.httpHeaderSetter.setGetResponseHeaders(db.searchRequest, db.response, soapResponse, req, resp);
-                    }
-                }
-                //writer.println(soapResponse);
-                //writer.close();
-                sos.write(soapResponse.getBytes("utf-8"));
-                sos.close();
-            }
-            else {
-                resp.setContentType("text/html");
-                PrintWriter writer=resp.getWriter();
-                writer.println("<p>"+Messages.getMessage("noResponse01")+"</p>");
-                servletLog.error("request generated no response!");
-                writer.close();
-            }
+			if (response != null) {
+				ServletOutputStream out = null;
+				try {
+					out = resp.getOutputStream();
+					IOUtils.copyAndCloseInput(response.getInputStream(), out);
+				} catch (Exception e) {
+					throw new IOException(e);
+				} finally {
+					try {
+						out.close();
+					} catch (Exception e) {
+					}
+				}
+			} else {
+				resp.setContentType("text/html");
+				PrintWriter writer = resp.getWriter();
+				writer.println("<p>" + Messages.getMessage("noResponse01")
+						+ "</p>");
+				servletLog.error("request generated no response!");
+				writer.close();
+			}
 //            log.info("at exit: totalMemory="+rt.totalMemory()+", freeMemory="+rt.freeMemory());
             servletLog.debug("exit processMethodRequest");
             return;

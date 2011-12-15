@@ -23,7 +23,7 @@ package ORG.oclc.os.SRW;
 
 import gov.loc.www.zing.srw.DiagnosticsType;
 import gov.loc.www.zing.srw.diagnostic.DiagnosticType;
-import java.net.URI;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -290,6 +290,43 @@ public class SRWDiagnostic extends Exception {
         }
         return dt;
     }
+
+    public static org.escidoc.core.domain.sru.diagnostics.DiagnosticType newSruDiagnosticType(int code, String details) {
+        return newSruDiagnosticType("info:srw/diagnostic/1/", code, details);
+    }
+
+	public static org.escidoc.core.domain.sru.diagnostics.DiagnosticType newSruDiagnosticType(
+			String baseURI, int code, String details) {
+		org.escidoc.core.domain.sru.diagnostics.DiagnosticType dt = new org.escidoc.core.domain.sru.diagnostics.DiagnosticType();
+		dt.setUri(baseURI + code);
+		dt.setDetails(details);
+		if (log.isDebugEnabled()) {
+			try {
+				log.debug(SRWDiagnostic.message[code] + "(" + code + "): \""
+						+ details + "\"");
+			} catch (Exception e) {
+				log.error("Diagnostic code " + code + " not in SRWDiagnostics");
+				log.error(code + ": \"" + details + "\"");
+			}
+			if (code != 10 && code != 16 && code != 22 && code != 130) {
+				Exception e = new Exception();
+				StackTraceElement[] trace = e.getStackTrace();
+				int i;
+				String className;
+				for (i = 0; i < trace.length; i++) {
+					className = trace[i].getClassName();
+					if (!className.startsWith("ORG")
+							&& !className.startsWith("gov"))
+						break;
+				}
+				StackTraceElement[] shortTrace = new StackTraceElement[i];
+				System.arraycopy(trace, 0, shortTrace, 0, i);
+				e.setStackTrace(shortTrace);
+				log.debug(e, e);
+			}
+		}
+		return dt;
+	}
 
     public static String newSurrogateDiagnostic(String baseURI, int code, String details) {
         StringBuffer sb=new StringBuffer("<diagnostic xmlns=\"http://www.loc.gov/zing/srw/diagnostic/\">\n");
