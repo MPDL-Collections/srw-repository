@@ -7,6 +7,8 @@
 
 package gov.loc.www.zing.srw.srw_bindings;
 
+import org.apache.axis.MessageContext;
+
 public class SRWSoapBindingSkeleton implements gov.loc.www.zing.srw.interfaces.SRWPort, org.apache.axis.wsdl.Skeleton {
     private gov.loc.www.zing.srw.interfaces.SRWPort impl;
     private static java.util.Map _myOperations = new java.util.Hashtable();
@@ -66,6 +68,12 @@ public class SRWSoapBindingSkeleton implements gov.loc.www.zing.srw.interfaces.S
     public gov.loc.www.zing.srw.SearchRetrieveResponseType searchRetrieveOperation(gov.loc.www.zing.srw.SearchRetrieveRequestType body) throws java.rmi.RemoteException
     {
         gov.loc.www.zing.srw.SearchRetrieveResponseType ret = impl.searchRetrieveOperation(body);
+        return ret;
+    }
+
+    public gov.loc.www.zing.srw.utils.Stream searchRetrieveOperation(org.escidoc.core.domain.sru.SearchRetrieveRequestType body, MessageContext msgContext, String handle) throws java.rmi.RemoteException
+    {
+    	gov.loc.www.zing.srw.utils.Stream ret = impl.searchRetrieveOperation(body, msgContext, handle);
         return ret;
     }
 

@@ -9,5 +9,6 @@ package gov.loc.www.zing.srw.interfaces;
 
 public interface SRWPort extends java.rmi.Remote {
     public gov.loc.www.zing.srw.SearchRetrieveResponseType searchRetrieveOperation(gov.loc.www.zing.srw.SearchRetrieveRequestType body) throws java.rmi.RemoteException;
+    public gov.loc.www.zing.srw.utils.Stream searchRetrieveOperation(org.escidoc.core.domain.sru.SearchRetrieveRequestType body, org.apache.axis.MessageContext msgContext, String handle) throws java.rmi.RemoteException;
     public gov.loc.www.zing.srw.ScanResponseType scanOperation(gov.loc.www.zing.srw.ScanRequestType body) throws java.rmi.RemoteException;
 }
