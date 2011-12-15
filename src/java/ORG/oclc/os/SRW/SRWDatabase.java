@@ -21,19 +21,21 @@
 
 package ORG.oclc.os.SRW;
 
+import gov.loc.www.zing.srw.DiagnosticsType;
+import gov.loc.www.zing.srw.ExplainResponseType;
 import gov.loc.www.zing.srw.ExtraDataType;
 import gov.loc.www.zing.srw.RecordType;
 import gov.loc.www.zing.srw.RecordsType;
-import gov.loc.www.zing.srw.StringOrXmlFragment;
-import gov.loc.www.zing.srw.TermsType;
-import gov.loc.www.zing.srw.diagnostic.DiagnosticType;
-import gov.loc.www.zing.srw.DiagnosticsType;
-import gov.loc.www.zing.srw.ExplainResponseType;
 import gov.loc.www.zing.srw.ScanRequestType;
 import gov.loc.www.zing.srw.ScanResponseType;
 import gov.loc.www.zing.srw.SearchRetrieveRequestType;
 import gov.loc.www.zing.srw.SearchRetrieveResponseType;
+import gov.loc.www.zing.srw.StringOrXmlFragment;
+import gov.loc.www.zing.srw.TermsType;
+import gov.loc.www.zing.srw.diagnostic.DiagnosticType;
 import gov.loc.www.zing.srw.srw_bindings.SRWSoapBindingImpl;
+import gov.loc.www.zing.srw.utils.RestSearchRetrieveResponseType;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -42,27 +44,31 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.Random;
 import java.util.StringTokenizer;
 import java.util.Timer;
 import java.util.Vector;
-import javax.servlet.http.HttpServletRequest;
+
 import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Source;
+import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerFactory;
+
 import org.apache.axis.MessageContext;
 import org.apache.axis.message.MessageElement;
 import org.apache.axis.message.Text;
@@ -477,6 +483,18 @@ public abstract class SRWDatabase {
     }
 
 
+    public org.escidoc.core.domain.sru.SearchRetrieveResponseType diagnostic(final int code,
+  	      final String details, final org.escidoc.core.domain.sru.SearchRetrieveResponseType response) {
+  	        boolean         addDiagnostics=false;
+  	        org.escidoc.core.domain.sru.DiagnosticsType diagnostics=response.getDiagnostics();
+  	        if(diagnostics==null)
+  	            addDiagnostics=true;
+  	        diagnostics=newDiagnostic(code, details, diagnostics);
+  	        if(addDiagnostics)
+  	            response.setDiagnostics(diagnostics);
+  	        return response;
+  	    }
+
     public ScanResponseType doRequest(ScanRequestType request) throws ServletException {
         searchRequest=null;
         response=null;
@@ -539,6 +557,9 @@ public abstract class SRWDatabase {
         return scanResponse;
     }
 
+    public RestSearchRetrieveResponseType doRequest(org.escidoc.core.domain.sru.SearchRetrieveRequestType request) throws ServletException {
+    	return null;
+    }
 
 
     public SearchRetrieveResponseType doRequest(SearchRetrieveRequestType request) throws ServletException {
@@ -1414,6 +1435,43 @@ public abstract class SRWDatabase {
         return edt;
     }
 
+	private static org.escidoc.core.domain.sru.ExtraDataType makeSruExtraDataType(
+			String extraData) {
+		org.escidoc.core.domain.sru.ExtraDataType edt = null;
+		// extraData is always encoded as "xml"
+		Document domDoc;
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		dbf.setNamespaceAware(true);
+		try {
+			DocumentBuilder db = dbf.newDocumentBuilder();
+			StringReader sr = new StringReader("<bogus>" + extraData
+					+ "</bogus>");
+			domDoc = db.parse(new InputSource(sr));
+			sr.close();
+			Element el = domDoc.getDocumentElement();
+			NodeList nodes = el.getChildNodes();
+			List<Object> elems = new ArrayList<Object>();
+			for (int i = 0; i < nodes.getLength(); i++)
+				elems.add((Element) nodes.item(i));
+			edt = new org.escidoc.core.domain.sru.ExtraDataType();
+			edt.getAny().addAll(elems);
+			domDoc = null;
+		} catch (IOException e) {
+			log.error(e, e);
+		} catch (ParserConfigurationException e) {
+			log.error(e, e);
+		} catch (SAXException e) {
+			log.error(e, e);
+			try {
+				log.error("Bad ExtraResponseData:\n"
+						+ Utilities.byteArrayToString(extraData
+								.getBytes("UTF8")));
+			} catch (UnsupportedEncodingException e2) {
+			} // can't happen
+		}
+		return edt;
+	}
+
     public static ExtraDataType makeExtraRequestDataType(String extraData) {
         return makeExtraDataType(extraData);
     }
@@ -1491,6 +1549,28 @@ public abstract class SRWDatabase {
         return newDiagnostics;
     }
 
+	public static org.escidoc.core.domain.sru.DiagnosticsType newDiagnostic(
+			final int code, final String details,
+			final org.escidoc.core.domain.sru.DiagnosticsType diagnostics) {
+		List<org.escidoc.core.domain.sru.diagnostics.DiagnosticType> diags;
+		org.escidoc.core.domain.sru.DiagnosticsType newDiagnostics = diagnostics;
+		int numExistingDiagnostics = 0;
+		if (diagnostics != null) {
+			diags = diagnostics.getDiagnostic();
+			numExistingDiagnostics = diags.size();
+			List<org.escidoc.core.domain.sru.diagnostics.DiagnosticType> newDiags = new ArrayList<org.escidoc.core.domain.sru.diagnostics.DiagnosticType>();
+			System.arraycopy(diags, 0, newDiags, 0, numExistingDiagnostics);
+			diags = newDiags;
+			diagnostics.getDiagnostic().addAll(diags);
+		} else {
+			diags = new ArrayList<org.escidoc.core.domain.sru.diagnostics.DiagnosticType>();
+			newDiagnostics = new org.escidoc.core.domain.sru.DiagnosticsType();
+			newDiagnostics.getDiagnostic().addAll(diags);
+		}
+		newDiagnostics.getDiagnostic().add(
+				SRWDiagnostic.newSruDiagnosticType(code, details));
+		return newDiagnostics;
+	}
 
     public static Hashtable<String, String> parseElements(ExtraDataType extraData) {
         Hashtable<String, String> extraDataTable = new Hashtable<String, String>();
@@ -1509,6 +1589,23 @@ public abstract class SRWDatabase {
         return extraDataTable;
     }
 
+	public static Hashtable<String, String> parseElements(
+			org.escidoc.core.domain.sru.ExtraDataType extraData) {
+		Hashtable<String, String> extraDataTable = new Hashtable<String, String>();
+		if (extraData != null) {
+			List<Object> elems = extraData.getAny();
+			NameValuePair nvp;
+			String extraRequestData = elems.get(0).toString();
+			ElementParser ep = new ElementParser(extraRequestData);
+			log.debug("extraRequestData=" + extraRequestData);
+			while (ep.hasMoreElements()) {
+				nvp = (NameValuePair) ep.nextElement();
+				extraDataTable.put(nvp.getName(), nvp.getValue());
+				log.debug(nvp);
+			}
+		}
+		return extraDataTable;
+	}
     
     public static void putDb(String dbname, SRWDatabase db) {
         LinkedList<SRWDatabase> queue=dbs.get(dbname);
@@ -1581,6 +1678,24 @@ public abstract class SRWDatabase {
         response.setExtraResponseData(makeExtraDataType(extraResponseData.toString()));
     }
 
+	static public void setExtraResponseData(
+			org.escidoc.core.domain.sru.SearchRetrieveResponseType response,
+			String extraData) {
+		org.escidoc.core.domain.sru.ExtraDataType edt = response
+				.getExtraResponseData();
+		StringBuffer extraResponseData = new StringBuffer(
+				"<extraData xmlns=\"http://oclc.org/srw/extraData\">");
+		if (edt != null) {
+			List<Object> elems = edt.getAny();
+			String currentExtraData = elems.get(0).toString();
+			int end = currentExtraData.lastIndexOf('<'), start = currentExtraData
+					.indexOf('<', 1);
+			extraResponseData.append(currentExtraData.substring(start, end));
+		}
+		extraResponseData.append(extraData).append("</extraData>");
+		response.setExtraResponseData(makeSruExtraDataType(extraResponseData
+				.toString()));
+	}
 
     public void setMaximumRecords(int maximumRecords) {
         this.maximumRecords=maximumRecords;
