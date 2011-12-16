@@ -24,8 +24,6 @@
 
 package ORG.oclc.os.SRW;
 
-import gov.loc.www.zing.srw.ExtraDataType;
-import gov.loc.www.zing.srw.SearchRetrieveRequestType;
 import gov.loc.www.zing.srw.srw_bindings.SRWSoapBindingImpl;
 import gov.loc.www.zing.srw.utils.IOUtils;
 import gov.loc.www.zing.srw.utils.Stream;
@@ -41,7 +39,6 @@ import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Iterator;
-import java.util.List;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -265,6 +262,7 @@ public class SRWServlet extends AxisServlet {
 @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response)
         throws ServletException, IOException {
+	long time = System.currentTimeMillis();
         servletLog.debug("Enter: doGet()");
 
         if("APP".equals(request.getAttribute("service"))) {
@@ -427,6 +425,7 @@ public class SRWServlet extends AxisServlet {
         } finally {
             //writer.close();
             servletLog.debug("Exit: doGet()");
+            servletLog.info("total request-response time: " + (System.currentTimeMillis() - time));
         }
     }
 

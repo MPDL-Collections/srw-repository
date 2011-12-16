@@ -94,7 +94,7 @@ public class RestSearchRetrieveResponseType {
 	 * @param db SRWDatabase
 	 * @return Stream search-result stream
 	 */
-	public Stream toStream(SRWDatabase db) {
+	public Stream toStream(SRWDatabase db, boolean closeRecordStreams) {
 		Stream stream = new Stream();
 		String searchResponse = null;
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -119,6 +119,12 @@ public class RestSearchRetrieveResponseType {
 			String[] par = searchResponse.split("<\\/records>");
 			if (par.length < 2) {
 				stream.write(searchResponse.getBytes(Constants.XML_CHARACTER_ENCODING));
+				stream.lock();
+				if (closeRecordStreams) {
+					for (Stream s : getRecordStreams()) {
+						s.close();
+					}
+				}
 				return stream;
 			}
 			String[] parts = par[0].split("<\\/recordPacking>");
@@ -128,15 +134,26 @@ public class RestSearchRetrieveResponseType {
 			for (int i = 0; i < getRecordStreams().size(); i++) {
 				stream.write(parts[i].getBytes(Constants.XML_CHARACTER_ENCODING));
 				stream.write("</recordPacking><recordData>".getBytes(Constants.XML_CHARACTER_ENCODING));
-				IOUtils.copyAndCloseInput(getRecordStreams().get(i).getInputStream(), stream.getOutputStream());
+				if (closeRecordStreams) {
+					IOUtils.copyAndCloseInput(getRecordStreams().get(i).getInputStream(), stream);
+				} else {
+					IOUtils.copy(getRecordStreams().get(i).getInputStream(), stream);
+				}
 				stream.write("</recordData>".getBytes(Constants.XML_CHARACTER_ENCODING));
 			}
 			stream.write(parts[parts.length - 1].getBytes(Constants.XML_CHARACTER_ENCODING));
 			stream.write("</records>".getBytes(Constants.XML_CHARACTER_ENCODING));
 			stream.write(par[1].getBytes(Constants.XML_CHARACTER_ENCODING));
+			stream.lock();
 			
 			return stream;
 		} catch (Exception e) {
+			if (stream != null) {
+				try {
+					stream.close();
+				} catch (IOException ex) {}
+			}
+
 			db.diagnostic(SRWDiagnostic.GeneralSystemError, e.toString(),
 					getSearchRetrieveResponse());
 			try {
@@ -148,6 +165,7 @@ public class RestSearchRetrieveResponseType {
 				searchResponse = new String(errOut.toByteArray(), Constants.XML_CHARACTER_ENCODING);
 				Stream errStream = new Stream();
 				errStream.write(searchResponse.getBytes(Constants.XML_CHARACTER_ENCODING));
+				errStream.lock();
 				return errStream;
 			} 
 			catch (Exception ex) {
@@ -159,6 +177,14 @@ public class RestSearchRetrieveResponseType {
 						out.close();
 					}
 				} catch (Exception ex) {}
+			}
+		} finally {
+			if (closeRecordStreams) {
+				for (Stream s : getRecordStreams()) {
+					try {
+						s.close();
+					} catch (IOException e) {}
+				}
 			}
 		}
 	}

@@ -25,24 +25,20 @@ import gov.loc.www.zing.srw.DiagnosticsType;
 import gov.loc.www.zing.srw.ExplainResponseType;
 import gov.loc.www.zing.srw.ExtraDataType;
 import gov.loc.www.zing.srw.RecordType;
-import gov.loc.www.zing.srw.RecordsType;
 import gov.loc.www.zing.srw.ScanRequestType;
 import gov.loc.www.zing.srw.ScanResponseType;
 import gov.loc.www.zing.srw.SearchRetrieveRequestType;
 import gov.loc.www.zing.srw.SearchRetrieveResponseType;
-import gov.loc.www.zing.srw.StringOrXmlFragment;
 import gov.loc.www.zing.srw.TermsType;
 import gov.loc.www.zing.srw.diagnostic.DiagnosticType;
 import gov.loc.www.zing.srw.srw_bindings.SRWSoapBindingImpl;
 import gov.loc.www.zing.srw.utils.RestSearchRetrieveResponseType;
-import gov.loc.www.zing.srw.utils.Stream;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
@@ -50,7 +46,6 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.Random;
 import java.util.StringTokenizer;
@@ -65,12 +60,9 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
-import org.apache.axis.MessageContext;
 import org.apache.axis.message.MessageElement;
 import org.apache.axis.message.Text;
 import org.apache.axis.types.NonNegativeInteger;
@@ -562,123 +554,123 @@ public abstract class SRWDatabase {
     }
 
     public SearchRetrieveResponseType doRequest(SearchRetrieveRequestType request) throws ServletException {
-        boolean cachedResultSet=false;
-        QueryResult result;
-        searchRequest=request;
-        response = new SearchRetrieveResponseType();
-
-        response.setNumberOfRecords(new NonNegativeInteger("0"));        
-        //        try {
-                    MessageContext msgContext = MessageContext.getCurrentContext();
-
-        String version=request.getVersion();
-        if(version!=null && !version.equals("1.1"))
-            return diagnostic(SRWDiagnostic.UnsupportedVersion, version, response);
-
-        String query = request.getQuery();
-        if(query==null || query.length()==0)
-            return diagnostic(SRWDiagnostic.MandatoryParameterNotSupplied, "query", response);
-
-        if(log.isDebugEnabled())
-            try{
-                log.debug("query:\n" + Utilities.byteArrayToString(query.getBytes("UTF-8")));
-            } catch (Exception e){}
-
-        String recordPacking = request.getRecordPacking();
-        if(recordPacking==null) {
-            if(msgContext!=null && msgContext.getProperty("sru")!=null)
-                recordPacking="xml"; // default for sru
-            else
-                recordPacking="string"; // default for srw
-        }
-
-        String resultSetID = getResultSetId(query);
-        if (resultSetID!=null) { // got a cached result
-            log.info("resultSetID="+resultSetID);
-            result = oldResultSets.get(resultSetID);
-            if (result==null)
-                return diagnostic(SRWDiagnostic.ResultSetDoesNotExist,
-                        resultSetID, response);
-            cachedResultSet=true;
-        }
-        else { // Evaluate the query.
-            try {
-                result = getQueryResult(query, request);
-            } catch (InstantiationException e) {
-                log.error(e, e);
-                return diagnostic(SRWDiagnostic.GeneralSystemError,
-                        e.getMessage(), response);
-            }
-        }
-
-        long postingsCount = result.getNumberOfRecords();
-        log.info("'" + query + "'==> " + postingsCount);
-        response.setNumberOfRecords(new NonNegativeInteger(Long.toString(postingsCount)));
-
-        int resultSetTTL = defaultResultSetTTL;
-        NonNegativeInteger nni = request.getResultSetTTL();
-        if(nni!=null)
-            resultSetTTL=nni.intValue();
-        result.setResultSetIdleTime(resultSetTTL);
-        if (postingsCount>0) {  // we don't mess with records otherwise
-            if (resultSetTTL>0 && returnResultSetId) {
-                // cache the resultSet and set (or reset) its timer
-                if(resultSetID==null)
-                    resultSetID=makeResultSetID();
-                log.debug("keeping resultSet '"+resultSetID+"' for "+resultSetTTL+
-                    " seconds");
-                oldResultSets.put(resultSetID, result);
-                resetTimer(resultSetID);
-                response.setResultSetId(resultSetID);
-                response.setResultSetIdleTime(
-                    new PositiveInteger(Integer.toString(resultSetTTL)));
-                cachedResultSet=true;
-            }
-
-            int numRecs = defaultNumRecs;
-            NonNegativeInteger maxRecs = request.getMaximumRecords();
-            if (maxRecs!=null)
-                numRecs = (int) Math.min(maxRecs.longValue(), maximumRecords);
-
-            long startPoint = 1;
-            PositiveInteger startRec = request.getStartRecord();
-            if(startRec!=null)
-                startPoint=startRec.longValue();
-            if (startPoint>postingsCount)
-                diagnostic(SRWDiagnostic.FirstRecordPositionOutOfRange,
-                        null, response);
-
-            if ((startPoint-1+numRecs)>postingsCount)
-                numRecs = (int) (postingsCount-(startPoint-1));
-
-            if (!recordPacking.equals("xml") &&
-              !recordPacking.equals("string")) {
-                diagnostic(SRWDiagnostic.UnsupportedRecordPacking, recordPacking, response);
-                numRecs=0;
-            }
-
-            String schemaName = request.getRecordSchema();
-            if(schemaName==null)
-                schemaName="default";
-            String schemaID=null;
-            if(!letDefaultsBeDefault || !schemaName.equals("default")) {
-                schemaID = getSchemaID(schemaName);
-                if(schemaID==null) {
-                    diagnostic(SRWDiagnostic.UnknownSchemaForRetrieval, schemaName, response);
-                    numRecs=0;
-                }
-            }
-            
-            if (numRecs==0)
-                response.setNextRecordPosition(new PositiveInteger("1"));
-            else
-                if (numRecs>0) { // render some records into SGML
-                    String sortKeys = request.getSortKeys();
-                    log.debug("schemaName="+schemaName+", schemaID="+schemaID+
-                        ", sortKeys="+sortKeys);                    
-                    if(sortKeys!=null && sortKeys.length()>0) { // do we need to sort them first?
-                        QueryResult sortedResult=result.getSortedResult(sortKeys);
-                        if(sortedResult==null) { // sigh, we've got some sorting to do
+//        boolean cachedResultSet=false;
+//        QueryResult result;
+//        searchRequest=request;
+//        response = new SearchRetrieveResponseType();
+//
+//        response.setNumberOfRecords(new NonNegativeInteger("0"));        
+//        //        try {
+//                    MessageContext msgContext = MessageContext.getCurrentContext();
+//
+//        String version=request.getVersion();
+//        if(version!=null && !version.equals("1.1"))
+//            return diagnostic(SRWDiagnostic.UnsupportedVersion, version, response);
+//
+//        String query = request.getQuery();
+//        if(query==null || query.length()==0)
+//            return diagnostic(SRWDiagnostic.MandatoryParameterNotSupplied, "query", response);
+//
+//        if(log.isDebugEnabled())
+//            try{
+//                log.debug("query:\n" + Utilities.byteArrayToString(query.getBytes("UTF-8")));
+//            } catch (Exception e){}
+//
+//        String recordPacking = request.getRecordPacking();
+//        if(recordPacking==null) {
+//            if(msgContext!=null && msgContext.getProperty("sru")!=null)
+//                recordPacking="xml"; // default for sru
+//            else
+//                recordPacking="string"; // default for srw
+//        }
+//
+//        String resultSetID = getResultSetId(query);
+//        if (resultSetID!=null) { // got a cached result
+//            log.info("resultSetID="+resultSetID);
+//            result = oldResultSets.get(resultSetID);
+//            if (result==null)
+//                return diagnostic(SRWDiagnostic.ResultSetDoesNotExist,
+//                        resultSetID, response);
+//            cachedResultSet=true;
+//        }
+//        else { // Evaluate the query.
+//            try {
+//                result = getQueryResult(query, request);
+//            } catch (InstantiationException e) {
+//                log.error(e, e);
+//                return diagnostic(SRWDiagnostic.GeneralSystemError,
+//                        e.getMessage(), response);
+//            }
+//        }
+//
+//        long postingsCount = result.getNumberOfRecords();
+//        log.info("'" + query + "'==> " + postingsCount);
+//        response.setNumberOfRecords(new NonNegativeInteger(Long.toString(postingsCount)));
+//
+//        int resultSetTTL = defaultResultSetTTL;
+//        NonNegativeInteger nni = request.getResultSetTTL();
+//        if(nni!=null)
+//            resultSetTTL=nni.intValue();
+//        result.setResultSetIdleTime(resultSetTTL);
+//        if (postingsCount>0) {  // we don't mess with records otherwise
+//            if (resultSetTTL>0 && returnResultSetId) {
+//                // cache the resultSet and set (or reset) its timer
+//                if(resultSetID==null)
+//                    resultSetID=makeResultSetID();
+//                log.debug("keeping resultSet '"+resultSetID+"' for "+resultSetTTL+
+//                    " seconds");
+//                oldResultSets.put(resultSetID, result);
+//                resetTimer(resultSetID);
+//                response.setResultSetId(resultSetID);
+//                response.setResultSetIdleTime(
+//                    new PositiveInteger(Integer.toString(resultSetTTL)));
+//                cachedResultSet=true;
+//            }
+//
+//            int numRecs = defaultNumRecs;
+//            NonNegativeInteger maxRecs = request.getMaximumRecords();
+//            if (maxRecs!=null)
+//                numRecs = (int) Math.min(maxRecs.longValue(), maximumRecords);
+//
+//            long startPoint = 1;
+//            PositiveInteger startRec = request.getStartRecord();
+//            if(startRec!=null)
+//                startPoint=startRec.longValue();
+//            if (startPoint>postingsCount)
+//                diagnostic(SRWDiagnostic.FirstRecordPositionOutOfRange,
+//                        null, response);
+//
+//            if ((startPoint-1+numRecs)>postingsCount)
+//                numRecs = (int) (postingsCount-(startPoint-1));
+//
+//            if (!recordPacking.equals("xml") &&
+//              !recordPacking.equals("string")) {
+//                diagnostic(SRWDiagnostic.UnsupportedRecordPacking, recordPacking, response);
+//                numRecs=0;
+//            }
+//
+//            String schemaName = request.getRecordSchema();
+//            if(schemaName==null)
+//                schemaName="default";
+//            String schemaID=null;
+//            if(!letDefaultsBeDefault || !schemaName.equals("default")) {
+//                schemaID = getSchemaID(schemaName);
+//                if(schemaID==null) {
+//                    diagnostic(SRWDiagnostic.UnknownSchemaForRetrieval, schemaName, response);
+//                    numRecs=0;
+//                }
+//            }
+//            
+//            if (numRecs==0)
+//                response.setNextRecordPosition(new PositiveInteger("1"));
+//            else
+//                if (numRecs>0) { // render some records into SGML
+//                    String sortKeys = request.getSortKeys();
+//                    log.debug("schemaName="+schemaName+", schemaID="+schemaID+
+//                        ", sortKeys="+sortKeys);                    
+//                    if(sortKeys!=null && sortKeys.length()>0) { // do we need to sort them first?
+//                        QueryResult sortedResult=result.getSortedResult(sortKeys);
+//                        if(sortedResult==null) { // sigh, we've got some sorting to do
 //                            log.info("sorting resultSet");
 //                            boolean       ascending=true;
 //                            SortTool sortTool=null;
@@ -748,187 +740,188 @@ public abstract class SRWDatabase {
 //                            Arrays.sort(entries);
 //                            sortedResultSets.put(resultSetID+"/"+sortKeys, entries);
 //                            sortTools.put(sortKeys, sortTool);
-                        }
-                        else {
-                            log.debug("reusing old sorted resultSet");
-                        }
-                        if(sortedResult==null)
-                            diagnostic(SRWDiagnostic.SortNotSupported,
-                                null, response);
-                        else
-                            result=sortedResult;
-                    }  // if(sortKeys!=null && sortKeys.length()>0)
-                    
-                                        // render some records
-                                        RecordIterator list = null;
-                    try {
-                        log.debug("making RecordIterator, startPoint="+startPoint+", schemaID="+schemaID);
-                        list=result.recordIterator(startPoint, numRecs, schemaID, request.getExtraRequestData());
-                    } catch (InstantiationException e) {
-                        diagnostic(SRWDiagnostic.GeneralSystemError,
-                            e.getMessage(), response);
-                    }
-                    RecordsType records = new RecordsType();
-
-                    records.setRecord(new RecordType[numRecs]);
-                    Document               domDoc;
-                    DocumentBuilder        docb = null;
-                    DocumentBuilderFactory dbf = null;
-                    int                    i,  listEntry = -1;
-                    MessageElement         elems[];
-                    Record                 rec;
-                    RecordType             rt;
-                    String                 recStr = "";
-                    StringOrXmlFragment    frag;
-                    if (recordPacking.equals("xml")) {
-                        dbf = DocumentBuilderFactory.newInstance();
-                        dbf.setNamespaceAware(true);
-                        try {
-                            docb=dbf.newDocumentBuilder();
-                        } catch (ParserConfigurationException e) {
-                            log.error(e, e);
-                        }
-                    }
-
-                    /**
-                     * One at a time, retrieve and display the requested documents.
-                     */
-                    log.debug("trying to get "+numRecs+
-                        " records starting with record "+startPoint+
-                        " from a set of "+postingsCount+" records");
-                    for (i=0; list!=null && i<numRecs && list.hasNext(); i++) {
-                        rt = new RecordType();
-                        rt.setRecordPacking(recordPacking);
-                        frag = new StringOrXmlFragment();
-                        elems = new MessageElement[1];
-                        frag.set_any(elems);
-                        try {
-                            rec=list.nextRecord();
-                            log.debug("rec="+rec);
-                            recStr=transform(rec, schemaID).getRecord();
-                            if (log.isDebugEnabled())
-                                try {
-                                    log.debug("Transformed XML:\n" + Utilities.byteArrayToString(
-                                        recStr.getBytes("UTF8")));
-                                } catch (UnsupportedEncodingException e) {} // can't happen
-                            makeElem(recStr, rt, schemaID, schemaName, recordPacking, docb, elems);
-                            if(rec.hasExtraRecordInfo())
-                                setExtraRecordData(rt, rec.getExtraRecordInfo());
-                        } catch (IOException e) {
-                            try {
-                                log.error(e, e);
-                                makeElem(SRWDiagnostic.newSurrogateDiagnostic(
-                                    "info:srw/diagnostic/1/",
-                                    SRWDiagnostic.RecordTemporarilyUnavailable,
-                                    null), rt, null,
-                                    "info:srw/schema/1/diagnostics-v1.1",
-                                    recordPacking, docb, elems);
-                            } catch (IOException e2) {
-                                log.error(e, e);
-                                break;
-                            } catch (SAXException e2) {
-                                log.error(e, e);
-                                break;
-                            }
-                            log.error("error getting document "+(i+1)+", postings="+postingsCount);
-                            log.error(e, e);
-                        } catch (NoSuchElementException e) {
-                            try {
-                                log.error(e, e);
-                                makeElem(SRWDiagnostic.newSurrogateDiagnostic(
-                                    "info:srw/diagnostic/1/",
-                                    SRWDiagnostic.RecordTemporarilyUnavailable,
-                                    null), rt, null,
-                                    "info:srw/schema/1/diagnostics-v1.1",
-                                    recordPacking, docb, elems);
-                            } catch (IOException e2) {
-                                log.error(e, e);
-                                break;
-                            } catch (SAXException e2) {
-                                log.error(e, e);
-                                break;
-                            }
-                            log.error("error getting document "+(i+1)+", postings="+postingsCount);
-                            log.error(e, e);
-                        } catch (SAXException e) {
-                            try {
-                                log.error(e, e);
-                                makeElem(SRWDiagnostic.newSurrogateDiagnostic(
-                                    "info:srw/diagnostic/1/",
-                                    SRWDiagnostic.RecordTemporarilyUnavailable,
-                                    null), rt, null,
-                                    "info:srw/schema/1/diagnostics-v1.1",
-                                    recordPacking, docb, elems);
-                            } catch (IOException e2) {
-                                log.error(e, e);
-                                break;
-                            } catch (SAXException e2) {
-                                log.error(e, e);
-                                break;
-                            }
-                            log.error("error getting document "+(i+1)+", postings="+postingsCount);
-                            log.error(e, e);
-                            try {
-                                log.error("Bad record:\n" + Utilities.byteArrayToString(
-                                        recStr.getBytes("UTF8")));
-                            } catch (UnsupportedEncodingException e2) {} // can't happen
-                        } catch (SRWDiagnostic e) {
-                            try {
-                                makeElem(SRWDiagnostic.newSurrogateDiagnostic(
-                                    "info:srw/diagnostic/1/", e.getCode(),
-                                    e.getAddInfo()), rt, null,
-                                    "info:srw/schema/1/diagnostics-v1.1",
-                                    recordPacking, docb, elems);
-                            } catch (IOException e2) {
-                                log.error(e, e);
-                                break;
-                            } catch (SAXException e2) {
-                                log.error(e, e);
-                                break;
-                            }
-                            log.error("error getting document "+(i+1)+", postings="+postingsCount);
-                            log.error(e, e);
-                            try {
-                                log.error("Bad record:\n" + Utilities.byteArrayToString(
-                                        recStr.getBytes("UTF8")));
-                            } catch (UnsupportedEncodingException e2) {} // can't happen
-                        }
-
-                        rt.setRecordData(frag);
-
-                        rt.setRecordPosition(new PositiveInteger(Long.toString(startPoint+i)));
-
-                        records.setRecord(i, rt);
-                    }
-                    response.setRecords(records);
-                    if (startPoint+i<=postingsCount)
-                        response.setNextRecordPosition(new PositiveInteger(Long.toString(startPoint+i)));
-                } // else if(numRecs>0)
-        } // if(postingsCount>0)
-
-        String extraResponseData = getExtraResponseData(result, request);
-        log.info("extraResponseData="+extraResponseData);
-        if(extraResponseData!=null)
-            setExtraResponseData(response, extraResponseData);
-
-        Vector<DiagnosticType> diagnostics = result.getDiagnostics();
-        if (diagnostics!=null && !diagnostics.isEmpty()) {
-            DiagnosticType diagArray[] = new DiagnosticType[diagnostics.size()];
-            diagnostics.toArray(diagArray);
-            response.setDiagnostics(new DiagnosticsType(diagArray));
-        }
-        
-        if(!cachedResultSet)
-            result.close();
-
-        log.debug("exit doRequest");
-        return response;
+//                        }
+//                        else {
+//                            log.debug("reusing old sorted resultSet");
+//                        }
+//                        if(sortedResult==null)
+//                            diagnostic(SRWDiagnostic.SortNotSupported,
+//                                null, response);
+//                        else
+//                            result=sortedResult;
+//                    }  // if(sortKeys!=null && sortKeys.length()>0)
+//                    
+//                                        // render some records
+//                                        RecordIterator list = null;
+//                    try {
+//                        log.debug("making RecordIterator, startPoint="+startPoint+", schemaID="+schemaID);
+//                        list=result.recordIterator(startPoint, numRecs, schemaID, request.getExtraRequestData());
+//                    } catch (InstantiationException e) {
+//                        diagnostic(SRWDiagnostic.GeneralSystemError,
+//                            e.getMessage(), response);
+//                    }
+//                    RecordsType records = new RecordsType();
+//
+//                    records.setRecord(new RecordType[numRecs]);
+//                    Document               domDoc;
+//                    DocumentBuilder        docb = null;
+//                    DocumentBuilderFactory dbf = null;
+//                    int                    i,  listEntry = -1;
+//                    MessageElement         elems[];
+//                    Record                 rec;
+//                    RecordType             rt;
+//                    String                 recStr = "";
+//                    StringOrXmlFragment    frag;
+//                    if (recordPacking.equals("xml")) {
+//                        dbf = DocumentBuilderFactory.newInstance();
+//                        dbf.setNamespaceAware(true);
+//                        try {
+//                            docb=dbf.newDocumentBuilder();
+//                        } catch (ParserConfigurationException e) {
+//                            log.error(e, e);
+//                        }
+//                    }
+//
+//                    /**
+//                     * One at a time, retrieve and display the requested documents.
+//                     */
+//                    log.debug("trying to get "+numRecs+
+//                        " records starting with record "+startPoint+
+//                        " from a set of "+postingsCount+" records");
+//                    for (i=0; list!=null && i<numRecs && list.hasNext(); i++) {
+//                        rt = new RecordType();
+//                        rt.setRecordPacking(recordPacking);
+//                        frag = new StringOrXmlFragment();
+//                        elems = new MessageElement[1];
+//                        frag.set_any(elems);
+//                        try {
+//                            rec=list.nextRecord();
+//                            log.debug("rec="+rec);
+//                            recStr=transform(rec, schemaID).getRecord();
+//                            if (log.isDebugEnabled())
+//                                try {
+//                                    log.debug("Transformed XML:\n" + Utilities.byteArrayToString(
+//                                        recStr.getBytes("UTF8")));
+//                                } catch (UnsupportedEncodingException e) {} // can't happen
+//                            makeElem(recStr, rt, schemaID, schemaName, recordPacking, docb, elems);
+//                            if(rec.hasExtraRecordInfo())
+//                                setExtraRecordData(rt, rec.getExtraRecordInfo());
+//                        } catch (IOException e) {
+//                            try {
+//                                log.error(e, e);
+//                                makeElem(SRWDiagnostic.newSurrogateDiagnostic(
+//                                    "info:srw/diagnostic/1/",
+//                                    SRWDiagnostic.RecordTemporarilyUnavailable,
+//                                    null), rt, null,
+//                                    "info:srw/schema/1/diagnostics-v1.1",
+//                                    recordPacking, docb, elems);
+//                            } catch (IOException e2) {
+//                                log.error(e, e);
+//                                break;
+//                            } catch (SAXException e2) {
+//                                log.error(e, e);
+//                                break;
+//                            }
+//                            log.error("error getting document "+(i+1)+", postings="+postingsCount);
+//                            log.error(e, e);
+//                        } catch (NoSuchElementException e) {
+//                            try {
+//                                log.error(e, e);
+//                                makeElem(SRWDiagnostic.newSurrogateDiagnostic(
+//                                    "info:srw/diagnostic/1/",
+//                                    SRWDiagnostic.RecordTemporarilyUnavailable,
+//                                    null), rt, null,
+//                                    "info:srw/schema/1/diagnostics-v1.1",
+//                                    recordPacking, docb, elems);
+//                            } catch (IOException e2) {
+//                                log.error(e, e);
+//                                break;
+//                            } catch (SAXException e2) {
+//                                log.error(e, e);
+//                                break;
+//                            }
+//                            log.error("error getting document "+(i+1)+", postings="+postingsCount);
+//                            log.error(e, e);
+//                        } catch (SAXException e) {
+//                            try {
+//                                log.error(e, e);
+//                                makeElem(SRWDiagnostic.newSurrogateDiagnostic(
+//                                    "info:srw/diagnostic/1/",
+//                                    SRWDiagnostic.RecordTemporarilyUnavailable,
+//                                    null), rt, null,
+//                                    "info:srw/schema/1/diagnostics-v1.1",
+//                                    recordPacking, docb, elems);
+//                            } catch (IOException e2) {
+//                                log.error(e, e);
+//                                break;
+//                            } catch (SAXException e2) {
+//                                log.error(e, e);
+//                                break;
+//                            }
+//                            log.error("error getting document "+(i+1)+", postings="+postingsCount);
+//                            log.error(e, e);
+//                            try {
+//                                log.error("Bad record:\n" + Utilities.byteArrayToString(
+//                                        recStr.getBytes("UTF8")));
+//                            } catch (UnsupportedEncodingException e2) {} // can't happen
+//                        } catch (SRWDiagnostic e) {
+//                            try {
+//                                makeElem(SRWDiagnostic.newSurrogateDiagnostic(
+//                                    "info:srw/diagnostic/1/", e.getCode(),
+//                                    e.getAddInfo()), rt, null,
+//                                    "info:srw/schema/1/diagnostics-v1.1",
+//                                    recordPacking, docb, elems);
+//                            } catch (IOException e2) {
+//                                log.error(e, e);
+//                                break;
+//                            } catch (SAXException e2) {
+//                                log.error(e, e);
+//                                break;
+//                            }
+//                            log.error("error getting document "+(i+1)+", postings="+postingsCount);
+//                            log.error(e, e);
+//                            try {
+//                                log.error("Bad record:\n" + Utilities.byteArrayToString(
+//                                        recStr.getBytes("UTF8")));
+//                            } catch (UnsupportedEncodingException e2) {} // can't happen
+//                        }
+//
+//                        rt.setRecordData(frag);
+//
+//                        rt.setRecordPosition(new PositiveInteger(Long.toString(startPoint+i)));
+//
+//                        records.setRecord(i, rt);
+//                    }
+//                    response.setRecords(records);
+//                    if (startPoint+i<=postingsCount)
+//                        response.setNextRecordPosition(new PositiveInteger(Long.toString(startPoint+i)));
+//                } // else if(numRecs>0)
+//        } // if(postingsCount>0)
+//
+//        String extraResponseData = getExtraResponseData(result, request);
+//        log.info("extraResponseData="+extraResponseData);
+//        if(extraResponseData!=null)
+//            setExtraResponseData(response, extraResponseData);
+//
+//        Vector<DiagnosticType> diagnostics = result.getDiagnostics();
+//        if (diagnostics!=null && !diagnostics.isEmpty()) {
+//            DiagnosticType diagArray[] = new DiagnosticType[diagnostics.size()];
+//            diagnostics.toArray(diagArray);
+//            response.setDiagnostics(new DiagnosticsType(diagArray));
+//        }
+//        
+//        if(!cachedResultSet)
+//            result.close();
+//
+//        log.debug("exit doRequest");
+//        return response;
 //        }
 //        catch(Exception e) {
 //            //log.error(e);
 //            log.error(e, e);
 //            throw new ServletException(e.getMessage());
 //        }
+    	return null;
     }
 
 
@@ -1713,32 +1706,33 @@ public abstract class SRWDatabase {
 
 
     public Record transform(Record rec, String schemaID) throws SRWDiagnostic {
-        String recStr = Utilities.hex07Encode(rec.getRecord());
-        if (schemaID!=null && !rec.getRecordSchemaID().equals(schemaID)) {
-            log.debug("transforming to "+schemaID);
-            // They must have specified a transformer
-            Transformer t = transformers.get(schemaID);
-            if (t==null) {
-                log.error("can't transform record in schema "+rec.getRecordSchemaID());
-                log.error("record not available in schema "+schemaID);
-                log.error("available schemas are:");
-                Enumeration enumer = transformers.keys();
-                while (enumer.hasMoreElements()) {
-                    log.error("    " + (String) enumer.nextElement());
-                }
-                throw new SRWDiagnostic(SRWDiagnostic.RecordNotAvailableInThisSchema, schemaID);
-            }
-            StringWriter toRec = new StringWriter();
-            StreamSource fromRec = new StreamSource(new StringReader(recStr));
-            try {
-                t.transform(fromRec, new StreamResult(toRec));
-            } catch (TransformerException e) {
-                log.error(e, e);
-                throw new SRWDiagnostic(SRWDiagnostic.RecordNotAvailableInThisSchema, schemaID);
-            }
-            recStr=toRec.toString();
-        }
-        return new Record(recStr, schemaID);
+//        String recStr = Utilities.hex07Encode(rec.getRecord());
+//        if (schemaID!=null && !rec.getRecordSchemaID().equals(schemaID)) {
+//            log.debug("transforming to "+schemaID);
+//            // They must have specified a transformer
+//            Transformer t = transformers.get(schemaID);
+//            if (t==null) {
+//                log.error("can't transform record in schema "+rec.getRecordSchemaID());
+//                log.error("record not available in schema "+schemaID);
+//                log.error("available schemas are:");
+//                Enumeration enumer = transformers.keys();
+//                while (enumer.hasMoreElements()) {
+//                    log.error("    " + (String) enumer.nextElement());
+//                }
+//                throw new SRWDiagnostic(SRWDiagnostic.RecordNotAvailableInThisSchema, schemaID);
+//            }
+//            StringWriter toRec = new StringWriter();
+//            StreamSource fromRec = new StreamSource(new StringReader(recStr));
+//            try {
+//                t.transform(fromRec, new StreamResult(toRec));
+//            } catch (TransformerException e) {
+//                log.error(e, e);
+//                throw new SRWDiagnostic(SRWDiagnostic.RecordNotAvailableInThisSchema, schemaID);
+//            }
+//            recStr=toRec.toString();
+//        }
+//        return new Record(recStr, schemaID);
+    	return null;
     }
 
 
