@@ -5,9 +5,11 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 
+import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -43,6 +45,28 @@ public final class IOUtils {
             closeStream(input);
         }
     }
+
+	public static int escapeXmlAndCloseInput(final InputStream input,
+			final OutputStream output) throws IOException {
+		try {
+			String str = newStringFromStream(input);
+			StringEscapeUtils.escapeXml(new OutputStreamWriter(output), str); 
+			return str.length();
+		} finally {
+			closeStream(input);
+		}
+	}
+
+	public static int unescapeXmlAndCloseInput(final InputStream input,
+			final OutputStream output) throws IOException {
+		try {
+			String str = newStringFromStream(input);
+			StringEscapeUtils.unescapeXml(new OutputStreamWriter(output), str); 
+			return str.length();
+		} finally {
+			closeStream(input);
+		}
+	}
 
     public static int copy(final InputStream input, final OutputStream output, int bufferSize)
             throws IOException {
