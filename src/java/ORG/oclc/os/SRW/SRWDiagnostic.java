@@ -291,13 +291,13 @@ public class SRWDiagnostic extends Exception {
         return dt;
     }
 
-    public static org.escidoc.core.domain.sru.diagnostics.DiagnosticType newSruDiagnosticType(int code, String details) {
+    public static de.escidoc.core.domain.sru.diagnostics.DiagnosticType newSruDiagnosticType(int code, String details) {
         return newSruDiagnosticType("info:srw/diagnostic/1/", code, details);
     }
 
-	public static org.escidoc.core.domain.sru.diagnostics.DiagnosticType newSruDiagnosticType(
+	public static de.escidoc.core.domain.sru.diagnostics.DiagnosticType newSruDiagnosticType(
 			String baseURI, int code, String details) {
-		org.escidoc.core.domain.sru.diagnostics.DiagnosticType dt = new org.escidoc.core.domain.sru.diagnostics.DiagnosticType();
+		de.escidoc.core.domain.sru.diagnostics.DiagnosticType dt = new de.escidoc.core.domain.sru.diagnostics.DiagnosticType();
 		dt.setUri(baseURI + code);
 		dt.setDetails(details);
 		if (log.isDebugEnabled()) {
