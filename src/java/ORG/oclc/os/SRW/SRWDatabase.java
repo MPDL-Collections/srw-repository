@@ -483,10 +483,10 @@ public abstract class SRWDatabase {
         return response;
     }
 
-    public org.escidoc.core.domain.sru.SearchRetrieveResponseType diagnostic(final int code,
-    	      final String details, final org.escidoc.core.domain.sru.SearchRetrieveResponseType response) {
+    public de.escidoc.core.domain.sru.SearchRetrieveResponseType diagnostic(final int code,
+    	      final String details, final de.escidoc.core.domain.sru.SearchRetrieveResponseType response) {
     	        boolean         addDiagnostics=false;
-    	        org.escidoc.core.domain.sru.DiagnosticsType diagnostics=response.getDiagnostics();
+    	        de.escidoc.core.domain.sru.DiagnosticsType diagnostics=response.getDiagnostics();
     	        if(diagnostics==null)
     	            addDiagnostics=true;
     	        diagnostics=newDiagnostic(code, details, diagnostics);
@@ -557,7 +557,7 @@ public abstract class SRWDatabase {
         return scanResponse;
     }
 
-    public RestSearchRetrieveResponseType doRequest(org.escidoc.core.domain.sru.SearchRetrieveRequestType request) throws ServletException {
+    public RestSearchRetrieveResponseType doRequest(de.escidoc.core.domain.sru.SearchRetrieveRequestType request) throws ServletException {
     	return null;
     }
 
@@ -1434,8 +1434,8 @@ public abstract class SRWDatabase {
         return edt;
     }
 
-    private static org.escidoc.core.domain.sru.ExtraDataType makeSruExtraDataType(String extraData) {
-    	org.escidoc.core.domain.sru.ExtraDataType edt = null;
+    private static de.escidoc.core.domain.sru.ExtraDataType makeSruExtraDataType(String extraData) {
+    	de.escidoc.core.domain.sru.ExtraDataType edt = null;
         // extraData is always encoded as "xml"
         Document domDoc;
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
@@ -1450,7 +1450,7 @@ public abstract class SRWDatabase {
             List<Object> elems = new ArrayList<Object>();
             for(int i=0; i<nodes.getLength(); i++)
                 elems.add((Element)nodes.item(i));
-            edt = new org.escidoc.core.domain.sru.ExtraDataType();
+            edt = new de.escidoc.core.domain.sru.ExtraDataType();
             edt.getAny().addAll(elems);
             domDoc=null;
         } catch (IOException e) {
@@ -1544,23 +1544,23 @@ public abstract class SRWDatabase {
           return newDiagnostics;
       }
 
-    public static org.escidoc.core.domain.sru.DiagnosticsType newDiagnostic(final int code,
-            final String details, final org.escidoc.core.domain.sru.DiagnosticsType diagnostics) {
-    	List<org.escidoc.core.domain.sru.diagnostics.DiagnosticType>  diags;
-    	org.escidoc.core.domain.sru.DiagnosticsType newDiagnostics=diagnostics;
+    public static de.escidoc.core.domain.sru.DiagnosticsType newDiagnostic(final int code,
+            final String details, final de.escidoc.core.domain.sru.DiagnosticsType diagnostics) {
+    	List<de.escidoc.core.domain.sru.diagnostics.DiagnosticType>  diags;
+    	de.escidoc.core.domain.sru.DiagnosticsType newDiagnostics=diagnostics;
               int numExistingDiagnostics=0;
               if(diagnostics!=null) {
                   diags=diagnostics.getDiagnostic();
                   numExistingDiagnostics=diags.size();
-                  List<org.escidoc.core.domain.sru.diagnostics.DiagnosticType> newDiags=
-                      new ArrayList<org.escidoc.core.domain.sru.diagnostics.DiagnosticType>();
+                  List<de.escidoc.core.domain.sru.diagnostics.DiagnosticType> newDiags=
+                      new ArrayList<de.escidoc.core.domain.sru.diagnostics.DiagnosticType>();
                   System.arraycopy(diags, 0, newDiags, 0, numExistingDiagnostics);
                   diags=newDiags;
                   diagnostics.getDiagnostic().addAll(diags);
               }
               else {
-                  diags= new ArrayList<org.escidoc.core.domain.sru.diagnostics.DiagnosticType>();
-                  newDiagnostics=new org.escidoc.core.domain.sru.DiagnosticsType();
+                  diags= new ArrayList<de.escidoc.core.domain.sru.diagnostics.DiagnosticType>();
+                  newDiagnostics=new de.escidoc.core.domain.sru.DiagnosticsType();
                   newDiagnostics.getDiagnostic().addAll(diags);
               }
               newDiagnostics.getDiagnostic().add(SRWDiagnostic.newSruDiagnosticType(code, details));
@@ -1585,7 +1585,7 @@ public abstract class SRWDatabase {
         return extraDataTable;
     }
 
-    public static Hashtable<String, String> parseElements(org.escidoc.core.domain.sru.ExtraDataType extraData) {
+    public static Hashtable<String, String> parseElements(de.escidoc.core.domain.sru.ExtraDataType extraData) {
         Hashtable<String, String> extraDataTable = new Hashtable<String, String>();
         if (extraData!=null) {
             List<Object> elems = extraData.getAny();
@@ -1674,8 +1674,8 @@ public abstract class SRWDatabase {
         response.setExtraResponseData(makeExtraDataType(extraResponseData.toString()));
     }
 
-    static public void setExtraResponseData(org.escidoc.core.domain.sru.SearchRetrieveResponseType response, String extraData) {
-    	org.escidoc.core.domain.sru.ExtraDataType edt=response.getExtraResponseData();
+    static public void setExtraResponseData(de.escidoc.core.domain.sru.SearchRetrieveResponseType response, String extraData) {
+    	de.escidoc.core.domain.sru.ExtraDataType edt=response.getExtraResponseData();
         StringBuffer extraResponseData = new StringBuffer("<extraData xmlns=\"http://oclc.org/srw/extraData\">");
         if(edt!=null) {
             List<Object> elems = edt.getAny();

@@ -36,11 +36,11 @@ import java.util.List;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Marshaller;
 
-import org.escidoc.core.domain.sru.SearchRetrieveResponseType;
 
 import ORG.oclc.os.SRW.SRWDatabase;
 import ORG.oclc.os.SRW.SRWDiagnostic;
 import de.escidoc.core.common.util.Constants;
+import de.escidoc.core.domain.sru.SearchRetrieveResponseType;
 
 /**
  * @author Michael Hoppe
@@ -55,7 +55,7 @@ public class RestSearchRetrieveResponseType {
 
     public RestSearchRetrieveResponseType() throws IOException {
         try {
-            JAXBContext jc = JAXBContext.newInstance("org.escidoc.core.domain.sru");
+            JAXBContext jc = JAXBContext.newInstance("de.escidoc.core.domain.sru");
             marshaller = jc.createMarshaller();
             marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
         } catch (Exception e) {
@@ -101,7 +101,7 @@ public class RestSearchRetrieveResponseType {
 		try {
 			marshaller
 			.marshal(
-					new org.escidoc.core.domain.sru.SearchRetrieveResponseTO(
+					new de.escidoc.core.domain.sru.SearchRetrieveResponseTO(
 							getSearchRetrieveResponse()), out);
 			searchResponse = new String(out.toByteArray(), Constants.XML_CHARACTER_ENCODING);
 		} 
@@ -128,7 +128,7 @@ public class RestSearchRetrieveResponseType {
 			for (int i = 0; i < getRecordStreams().size(); i++) {
 				stream.write(parts[i].getBytes(Constants.XML_CHARACTER_ENCODING));
 				stream.write("</recordPacking><recordData>".getBytes(Constants.XML_CHARACTER_ENCODING));
-				IOUtils.copy(getRecordStreams().get(i).getInputStream(), stream.getOutputStream());
+				IOUtils.copyAndCloseInput(getRecordStreams().get(i).getInputStream(), stream.getOutputStream());
 				stream.write("</recordData>".getBytes(Constants.XML_CHARACTER_ENCODING));
 			}
 			stream.write(parts[parts.length - 1].getBytes(Constants.XML_CHARACTER_ENCODING));
@@ -143,7 +143,7 @@ public class RestSearchRetrieveResponseType {
 				ByteArrayOutputStream errOut = new ByteArrayOutputStream();
 				marshaller
 				.marshal(
-						new org.escidoc.core.domain.sru.SearchRetrieveResponseTO(
+						new de.escidoc.core.domain.sru.SearchRetrieveResponseTO(
 								getSearchRetrieveResponse()), errOut);
 				searchResponse = new String(errOut.toByteArray(), Constants.XML_CHARACTER_ENCODING);
 				Stream errStream = new Stream();

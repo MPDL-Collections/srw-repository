@@ -1333,7 +1333,7 @@ public class SRWServlet extends AxisServlet {
             ///////////////////////////////////////////////
 
 
-            org.escidoc.core.domain.sru.SearchRetrieveRequestType request = new org.escidoc.core.domain.sru.SearchRetrieveRequestType();
+            de.escidoc.core.domain.sru.SearchRetrieveRequestType request = new de.escidoc.core.domain.sru.SearchRetrieveRequestType();
             request.setQuery(query);
             Enumeration parms=req.getParameterNames();
             String extension, namespace, parm, t;
@@ -1404,7 +1404,7 @@ public class SRWServlet extends AxisServlet {
              	request.setRecordPacking("xml");
             }
             parms=req.getParameterNames(); // walk through them again
-        	org.escidoc.core.domain.sru.ExtraDataType extraDataType = new org.escidoc.core.domain.sru.ExtraDataType();
+        	de.escidoc.core.domain.sru.ExtraDataType extraDataType = new de.escidoc.core.domain.sru.ExtraDataType();
         	boolean hasExtraRequestData = false;
             while(parms.hasMoreElements()) {
                 parm=(String)parms.nextElement();
