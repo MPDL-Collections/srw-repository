@@ -21,14 +21,17 @@
 
 package ORG.oclc.os.SRW;
 
+import gov.loc.www.zing.srw.utils.Stream;
+
 /**
  *
  * @author levan
  */
 public class Record {
-    String extraRecordInfo, identifier, record, schemaID;
+    String extraRecordInfo, identifier, schemaID;
+    Stream record;
 
-    public Record(String record, String schemaID) {
+    public Record(Stream record, String schemaID) {
         this.record=record;
         this.schemaID=schemaID;
     }
@@ -45,7 +48,7 @@ public class Record {
         return schemaID;
     }
 
-    public String getRecord() {
+    public Stream getRecord() {
         return record;
     }
     
@@ -61,17 +64,17 @@ public class Record {
         this.identifier = identifier;
     }
 
-    public String toString() {
-        StringBuffer sb=new StringBuffer();
-        sb.append("Record: schemaID=").append(schemaID);
-        if(record.length()<=80) {
-            sb.append(", content:\n");
-            sb.append(record);
-        }
-        else {
-            sb.append(", first 80 bytes of content:\n");
-            sb.append(record.substring(0, 80));
-        }
-        return sb.toString();
-    }
+//    public String toString() {
+//        StringBuffer sb=new StringBuffer();
+//        sb.append("Record: schemaID=").append(schemaID);
+//        if(record.length()<=80) {
+//            sb.append(", content:\n");
+//            sb.append(record);
+//        }
+//        else {
+//            sb.append(", first 80 bytes of content:\n");
+//            sb.append(record.substring(0, 80));
+//        }
+//        return sb.toString();
+//    }
 }

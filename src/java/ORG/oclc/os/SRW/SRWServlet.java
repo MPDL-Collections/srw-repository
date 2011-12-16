@@ -262,6 +262,7 @@ public class SRWServlet extends AxisServlet {
 @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response)
         throws ServletException, IOException {
+		long time = System.currentTimeMillis();
         servletLog.debug("Enter: doGet()");
 
         if("APP".equals(request.getAttribute("service"))) {
@@ -424,6 +425,7 @@ public class SRWServlet extends AxisServlet {
         } finally {
             //writer.close();
             servletLog.debug("Exit: doGet()");
+            servletLog.info("total request-response time: " + (System.currentTimeMillis() - time));
         }
     }
 
