@@ -71,7 +71,7 @@ public class SRWSoapBindingSkeleton implements gov.loc.www.zing.srw.interfaces.S
         return ret;
     }
 
-    public gov.loc.www.zing.srw.utils.Stream searchRetrieveOperation(org.escidoc.core.domain.sru.SearchRetrieveRequestType body, MessageContext msgContext, String handle) throws java.rmi.RemoteException
+    public gov.loc.www.zing.srw.utils.Stream searchRetrieveOperation(de.escidoc.core.domain.sru.SearchRetrieveRequestType body, MessageContext msgContext, String handle) throws java.rmi.RemoteException
     {
     	gov.loc.www.zing.srw.utils.Stream ret = impl.searchRetrieveOperation(body, msgContext, handle);
         return ret;
