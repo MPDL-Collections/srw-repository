@@ -1380,8 +1380,9 @@ public class SRWServlet extends AxisServlet {
                 }
                 else if(parm.equals("recordPacking")) {
                     t=req.getParameter(parm);
-                    if(t!=null)
+                    if(t!=null) {
                         request.setRecordPacking(t);
+                    }
                 }
                 else if(parm.equals("resultSetTTL")) {
                     t=req.getParameter(parm);
@@ -1398,11 +1399,14 @@ public class SRWServlet extends AxisServlet {
                     }
                 }
             }
+            if (request.getRecordPacking() == null) {
+             	//Default for sru
+             	request.setRecordPacking("xml");
+            }
             parms=req.getParameterNames(); // walk through them again
-            boolean hasExtraRequestData=false;
-            List<MessageElement> messages = new ArrayList<MessageElement>();
+        	org.escidoc.core.domain.sru.ExtraDataType extraDataType = new org.escidoc.core.domain.sru.ExtraDataType();
+        	boolean hasExtraRequestData = false;
             while(parms.hasMoreElements()) {
-            	ExtraDataType e = new ExtraDataType();
                 parm=(String)parms.nextElement();
                 servletLog.debug("parm="+parm);
                 extension=srwInfo.getExtension(parm);
@@ -1413,10 +1417,18 @@ public class SRWServlet extends AxisServlet {
                     	MessageElement message = new MessageElement();
                     	message.setName(extension);
                     	message.setValue(t);
-                    	messages.add(message);
+                    	message.setNamespaceURI(srwInfo.getNamespace(parm));
+                    	try {
+                        	extraDataType.getAny().add(message.getAsDOM());
+                        	hasExtraRequestData = true;
+                    	} catch (Exception e) {
+                    		throw new IOException(e);
+                    	}
                     }
-                    hasExtraRequestData=true;
                 }
+            }
+            if (hasExtraRequestData) {
+                request.setExtraRequestData(extraDataType);
             }
             Stream response = null;
             try {
