@@ -425,7 +425,7 @@ public class SRWServlet extends AxisServlet {
         } finally {
             //writer.close();
             servletLog.debug("Exit: doGet()");
-            servletLog.info("total request-response time: " + (System.currentTimeMillis() - time));
+            servletLog.info("total request-response time: " + (System.currentTimeMillis() - time) + " ms");
         }
     }
 
