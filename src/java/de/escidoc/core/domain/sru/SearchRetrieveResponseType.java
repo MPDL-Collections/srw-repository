@@ -63,7 +63,7 @@ public class SearchRetrieveResponseType
     @XmlElement(required = true, type = String.class)
     @XmlJavaTypeAdapter(Adapter1 .class)
     @XmlSchemaType(name = "nonNegativeInteger")
-    protected NonNegativeInteger numberOfRecords;
+    protected NonNegativeInteger numberOfRecords = new NonNegativeInteger("0");
     protected String resultSetId;
     @XmlElement(type = String.class)
     @XmlJavaTypeAdapter(Adapter3 .class)
