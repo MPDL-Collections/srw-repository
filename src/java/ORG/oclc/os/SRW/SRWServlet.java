@@ -66,6 +66,7 @@ import org.apache.axis.transport.http.AxisServlet;
 import org.apache.axis.transport.http.HTTPConstants;
 import org.apache.axis.transport.http.HTTPTransport;
 import org.apache.axis.transport.http.ServletEndpointContextImpl;
+import org.apache.axis.types.NonNegativeInteger;
 import org.apache.axis.types.PositiveInteger;
 import org.apache.axis.utils.Admin;
 import org.apache.axis.utils.JavaUtils;
@@ -1369,7 +1370,7 @@ public class SRWServlet extends AxisServlet {
                             i=Integer.MAX_VALUE;
                         }
 
-                        request.setMaximumRecords(new PositiveInteger(String.valueOf(i)));
+                        request.setMaximumRecords(new NonNegativeInteger(String.valueOf(i)));
                     } 
                 }
                 else if(parm.equals("recordSchema")) {
@@ -1390,7 +1391,7 @@ public class SRWServlet extends AxisServlet {
                             i=Integer.parseInt(t);
                             if(i<0)
                                 i=Integer.MAX_VALUE;
-                            request.setResultSetTTL(new PositiveInteger(String.valueOf(i)));
+                            request.setResultSetTTL(new NonNegativeInteger(String.valueOf(i)));
                         }
                         catch(NumberFormatException e){
                             servletLog.error("resultSetTTL="+t);
