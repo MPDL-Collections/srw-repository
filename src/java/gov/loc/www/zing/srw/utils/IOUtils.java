@@ -50,8 +50,10 @@ public final class IOUtils {
 			final OutputStream output) throws IOException {
 		try {
 			String str = newStringFromStream(input);
-			StringEscapeUtils.escapeXml(new OutputStreamWriter(output), str); 
-			return str.length();
+			String escaped = StringEscapeUtils.escapeXml(str);
+			output.write(escaped.getBytes(UTF8));
+			output.flush();
+			return escaped.length();
 		} finally {
 			closeStream(input);
 		}
@@ -61,8 +63,10 @@ public final class IOUtils {
 			final OutputStream output) throws IOException {
 		try {
 			String str = newStringFromStream(input);
-			StringEscapeUtils.unescapeXml(new OutputStreamWriter(output), str); 
-			return str.length();
+			String unescaped = StringEscapeUtils.unescapeXml(str);
+			output.write(unescaped.getBytes(UTF8));
+			output.flush();
+			return unescaped.length();
 		} finally {
 			closeStream(input);
 		}
