@@ -241,6 +241,7 @@ public class SRWServletInfo {
             stylesheet=db.explainStyleSheet;
         PrintWriter    writer = response.getWriter();
         response.setContentType("text/xml");
+		response.setCharacterEncoding("UTF-8");
         try{
             writeXmlHeader(writer, msgContext, request, stylesheet);
             writer.write("<SRW:explainResponse "+
