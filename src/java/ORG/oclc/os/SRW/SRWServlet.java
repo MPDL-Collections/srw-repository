@@ -1440,6 +1440,8 @@ public class SRWServlet extends AxisServlet {
 			if (response != null) {
 				ServletOutputStream out = null;
 				try {
+					resp.setContentType("text/xml");
+					resp.setCharacterEncoding("UTF-8");
 					out = resp.getOutputStream();
 					IOUtils.copyAndCloseInput(response.getInputStream(), out);
 				} catch (Exception e) {
@@ -1540,6 +1542,7 @@ public class SRWServlet extends AxisServlet {
             Message respMsg=msgContext.getResponseMessage();
             if(respMsg!=null) {
                 resp.setContentType("text/xml");
+				resp.setCharacterEncoding("UTF-8");
                 PrintWriter writer=resp.getWriter();
                 // code to strip SOAP stuff out.  Hope this can go away some day
                 String soapResponse=respMsg.getSOAPPartAsString();
