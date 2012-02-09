@@ -32,6 +32,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Marshaller;
@@ -52,6 +54,8 @@ public class RestSearchRetrieveResponseType {
 	private List<Stream> recordStreams;
 
     private Marshaller marshaller = null;
+    
+	private Pattern p = Pattern.compile(".*?<\\/([^>]*?)\\:records>.*", Pattern.DOTALL);
 
     public RestSearchRetrieveResponseType() throws IOException {
         try {
@@ -116,7 +120,12 @@ public class RestSearchRetrieveResponseType {
 			} catch (Exception e) {}
 		}
 		try {
-			String[] par = searchResponse.split("<\\/records>");
+			Matcher m = p.matcher(searchResponse);
+			String prefix = "";
+			if (m.matches()) {
+				prefix = m.group(1);
+			}
+			String[] par = searchResponse.split("<\\/[^>]*?\\:records>");
 			if (par.length < 2) {
 				stream.write(searchResponse.getBytes(Constants.XML_CHARACTER_ENCODING));
 				stream.lock();
@@ -127,22 +136,22 @@ public class RestSearchRetrieveResponseType {
 				}
 				return stream;
 			}
-			String[] parts = par[0].split("<\\/recordPacking>");
+			String[] parts = par[0].split("<\\/[^>]*?\\:recordPacking>");
 			if (parts.length - 1 != getRecordStreams().size()) {
 				throw new IOException("records-length does not match streams-size");
 			}
 			for (int i = 0; i < getRecordStreams().size(); i++) {
 				stream.write(parts[i].getBytes(Constants.XML_CHARACTER_ENCODING));
-				stream.write("</recordPacking><recordData>".getBytes(Constants.XML_CHARACTER_ENCODING));
+				stream.write(("</" + prefix + ":recordPacking><" + prefix + ":recordData>").getBytes(Constants.XML_CHARACTER_ENCODING));
 				if (closeRecordStreams) {
 					IOUtils.copyAndCloseInput(getRecordStreams().get(i).getInputStream(), stream);
 				} else {
 					IOUtils.copy(getRecordStreams().get(i).getInputStream(), stream);
 				}
-				stream.write("</recordData>".getBytes(Constants.XML_CHARACTER_ENCODING));
+				stream.write(("</" + prefix + ":recordData>").getBytes(Constants.XML_CHARACTER_ENCODING));
 			}
 			stream.write(parts[parts.length - 1].getBytes(Constants.XML_CHARACTER_ENCODING));
-			stream.write("</records>".getBytes(Constants.XML_CHARACTER_ENCODING));
+			stream.write(("</" + prefix + ":records>").getBytes(Constants.XML_CHARACTER_ENCODING));
 			stream.write(par[1].getBytes(Constants.XML_CHARACTER_ENCODING));
 			stream.lock();
 			
