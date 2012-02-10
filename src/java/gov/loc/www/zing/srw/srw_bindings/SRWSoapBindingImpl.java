@@ -57,6 +57,8 @@ import ORG.oclc.os.SRW.SRWDiagnostic;
 import ORG.oclc.os.SRW.Utilities;
 import de.escidoc.core.common.exceptions.system.SystemException;
 import de.escidoc.core.common.util.service.UserContext;
+import de.escidoc.core.domain.sru.extradata.ExtraDataTO;
+import de.escidoc.core.domain.sru.extradata.TargetUrlTO;
 
 public class SRWSoapBindingImpl implements SRWPort {
     Log log=LogFactory.getLog(SRWSoapBindingImpl.class);
@@ -193,18 +195,14 @@ public class SRWSoapBindingImpl implements SRWPort {
 								response.getSearchRetrieveResponse());
 
 					// set extraResponseData
-					StringBuffer extraResponseData = new StringBuffer();
+					ExtraDataTO extraDataTo = new ExtraDataTO();
 
 					// we're going to stick the database name in extraResponseData
 					// every time
 					if (db.databaseTitle != null)
-						extraResponseData.append("<databaseTitle>")
-								.append(db.databaseTitle)
-								.append("</databaseTitle>");
+						extraDataTo.setDatabaseTitle(db.databaseTitle);
 					else
-						extraResponseData.append("<databaseTitle>").append(dbname)
-								.append("</databaseTitle>");
-
+						extraDataTo.setDatabaseTitle(dbname);
 					// did they ask for the targetURL to be returned?
 					Hashtable extraRequestDataElements = SRWDatabase
 							.parseElements(request.getExtraRequestData());
@@ -217,20 +215,17 @@ public class SRWSoapBindingImpl implements SRWPort {
 						log.info("targetStr=" + targetStr);
 						if (targetStr != null && targetStr.length() > 0) {
 							URL target = new URL(targetStr);
-							extraResponseData.append("<targetURL>")
-									.append("<host>").append(target.getHost())
-									.append("</host>").append("<port>")
-									.append(target.getPort()).append("</port>")
-									.append("<path>").append(target.getPath())
-									.append("</path>").append("<query>")
-									.append(Utilities.xmlEncode(target.getQuery()))
-									.append("</query>").append("</targetURL>");
+							TargetUrlTO targetUrlTo = new TargetUrlTO();
+							targetUrlTo.setHost(target.getHost());
+							targetUrlTo.setPort(Integer.toString(target.getPort()));
+							targetUrlTo.setPath(target.getPath());
+							targetUrlTo.setQuery(Utilities.xmlEncode(target.getQuery()));
+							extraDataTo.setTargetURL(targetUrlTo);
 						}
 					}
 
 					// set extraResponseData
-					SRWDatabase.setExtraResponseData(response.getSearchRetrieveResponse(),
-							extraResponseData.toString());
+					SRWDatabase.setExtraResponseData(response.getSearchRetrieveResponse(), extraDataTo);
 				} catch (Exception e) {
 					log.error(e, e);
 					throw new RemoteException(e.getMessage(), e);

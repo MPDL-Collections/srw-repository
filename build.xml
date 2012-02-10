@@ -1,74 +1,66 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!-- You may freely edit this file. See commented blocks below for -->
-<!-- some examples of how to customize the build. -->
-<!-- (If you delete it and reopen the project it will be recreated.) -->
-<project name="SRW" default="default" basedir=".">
-    <description>Builds, tests, and runs the project SRW.</description>
-    <import file="nbproject/build-impl.xml"/>
-    <!--
+<?xml version="1.0"?>
 
-    There exist several targets which are by default empty and which can be 
-    used for execution of your tasks. These targets are usually executed 
-    before and after some main targets. They are: 
+<project name="SRWRepository1.3" basedir="." default="sources">
 
-      -pre-init:                 called before initialization of project properties 
-      -post-init:                called after initialization of project properties 
-      -pre-compile:              called before javac compilation 
-      -post-compile:             called after javac compilation 
-      -pre-compile-single:       called before javac compilation of single file
-      -post-compile-single:      called after javac compilation of single file
-      -pre-compile-test:         called before javac compilation of JUnit tests
-      -post-compile-test:        called after javac compilation of JUnit tests
-      -pre-compile-test-single:  called before javac compilation of single JUnit test
-      -post-compile-test-single: called after javac compilation of single JUunit test
-      -pre-dist:                 called before jar building 
-      -post-dist:                called after jar building 
-      -post-clean:               called after cleaning build products 
+	<property name="project.name" value="SRW" />
+	<property name="build.dir" value="build" />
+	<property name="dist.dir" value="dist" />
+	<property name="src.dir" value="src" />
+	<property name="lib.dir" value="lib" />
+	<property name="bin.dir" value="bin" />
+	<property name="sources.dir" value="sources" />
 
-    Example of pluging an obfuscator after the compilation could look like 
+    <target name="clean" description="Clean all build products.">
+        <echo>Ant Home: ${ant.home}</echo>
+		<delete includeEmptyDirs="true">
+			<fileset dir="${build.dir}">
+				<include name="**/*"/>
+			</fileset>
+		</delete>
+		<delete includeEmptyDirs="true">
+			<fileset dir="${dist.dir}">
+				<include name="**/*"/>
+			</fileset>
+		</delete>
+    </target>
 
-        <target name="-post-compile">
-            <obfuscate>
-                <fileset dir="${build.classes.dir}"/>
-            </obfuscate>
-        </target>
+    <target name="compile" depends="clean">
+		<javac srcdir="${src.dir}" destdir="${build.dir}" deprecation="true" debug="on"
+           includes="**/*.java">
+              <classpath>
+                  <fileset dir="${lib.dir}">
+                      <include name="**/*.jar"/>
+                  </fileset>
+              </classpath>
+        </javac>
+    </target>
 
-    For list of available properties check the imported 
-    nbproject/build-impl.xml file. 
+    <target name="jar" depends="compile">
+        <copy todir="${build.dir}">
+            <fileset dir="${build.dir}/.." includes="*.wsdl"/>
+        </copy>
+        <jar jarfile="${dist.dir}/${project.name}.jar" basedir="${build.dir}"/>
+    	
+    </target>
 
+    <target name="sources" depends="jar">
+    	<delete dir="${sources.dir}"/>
+        <mkdir dir="${sources.dir}"/>
+		<copy todir="${sources.dir}">
+			<fileset dir=".">
+		    	<exclude name="${build.dir}/*/**"/>
+		    	<exclude name="${dist.dir}/*/**"/>
+		    	<exclude name="${bin.dir}/**"/>
+		    	<exclude name="${sources.dir}/**"/>
+		    	<exclude name=".settings/**"/>
+		    	<exclude name=".classpath"/>
+		    	<exclude name=".project"/>
+		    	<exclude name="**/.svn"/>
+			</fileset>
+		</copy>
+        <zip zipfile="${dist.dir}/${project.name}-sources.zip"
+             basedir="${sources.dir}" includes="**"/>
+    	<delete dir="${sources.dir}"/>
+    </target>
 
-    Other way how to customize the build is by overriding existing main targets.
-    The target of interest are: 
-
-      init-macrodef-javac:    defines macro for javac compilation
-      init-macrodef-junit:   defines macro for junit execution
-      init-macrodef-debug:    defines macro for class debugging
-      do-dist:                jar archive building
-      run:                    execution of project 
-      javadoc-build:          javadoc generation 
-
-    Example of overriding the target for project execution could look like 
-
-        <target name="run" depends="<PROJNAME>-impl.jar">
-            <exec dir="bin" executable="launcher.exe">
-                <arg file="${dist.jar}"/>
-            </exec>
-        </target>
-
-    Notice that overridden target depends on jar target and not only on 
-    compile target as regular run target does. Again, for list of available 
-    properties which you can use check the target you are overriding in 
-    nbproject/build-impl.xml file. 
-
-    -->
-    <target name="-post-dist">
-        <delete file="dist/SRW.jar"/>
-        <jar jarfile="dist/SRW.jar" basedir="build/web/WEB-INF/classes" includes="**/*.class"/>
-        <jar jarfile="dist/SRW.jar" update="true" duplicate="preserve">
-            <zipfileset dir="" includes="*.wsdl" prefix=""/>
-        </jar>
-        <delete file="d:/program files/Apache Software Foundation/Tomcat 5.5/webapps/SRW/WEB-INF/lib/SRW.jar"/>
-        <delete file="dist/SRWSource.jar"/>
-        <!--jar jarfile="dist/SRWSource.jar" basedir="src/java" includes="**/*.java"/-->
-        </target>
 </project>

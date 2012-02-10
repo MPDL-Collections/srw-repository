@@ -5,8 +5,5 @@
 // Generated on: 2011.12.08 at 03:34:25 PM CET 
 //
 
-@javax.xml.bind.annotation.XmlSchema(xmlns = { 
-	      @javax.xml.bind.annotation.XmlNs(prefix = "sru-diagnostic", 
-	                 namespaceURI="http://www.loc.gov/zing/srw/diagnostic/")},
-	                 namespace = "http://www.loc.gov/zing/srw/diagnostic/", elementFormDefault = javax.xml.bind.annotation.XmlNsForm.QUALIFIED)
+@javax.xml.bind.annotation.XmlSchema(namespace = "http://www.loc.gov/zing/srw/diagnostic/", elementFormDefault = javax.xml.bind.annotation.XmlNsForm.QUALIFIED)
 package de.escidoc.core.domain.sru.diagnostics;

@@ -59,9 +59,11 @@ public class RestSearchRetrieveResponseType {
 
     public RestSearchRetrieveResponseType() throws IOException {
         try {
-            JAXBContext jc = JAXBContext.newInstance("de.escidoc.core.domain.sru");
+            JAXBContext jc = JAXBContext.newInstance("de.escidoc.core.domain.sru:de.escidoc.core.domain.sru.extradata");
             marshaller = jc.createMarshaller();
             marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+            marshaller.setProperty("com.sun.xml.bind.namespacePrefixMapper",        
+            	    new SruNamespacePrefixMapper()); 
         } catch (Exception e) {
             throw new IOException(e);
         }

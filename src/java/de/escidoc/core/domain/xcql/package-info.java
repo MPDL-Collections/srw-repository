@@ -5,8 +5,5 @@
 // Generated on: 2011.12.08 at 03:34:25 PM CET 
 //
 
-@javax.xml.bind.annotation.XmlSchema(xmlns = { 
-	      @javax.xml.bind.annotation.XmlNs(prefix = "sru-xcql", 
-	                 namespaceURI="http://www.loc.gov/zing/cql/xcql/")},
-	                 namespace = "http://www.loc.gov/zing/cql/xcql/", elementFormDefault = javax.xml.bind.annotation.XmlNsForm.QUALIFIED)
+@javax.xml.bind.annotation.XmlSchema(namespace = "http://www.loc.gov/zing/cql/xcql/", elementFormDefault = javax.xml.bind.annotation.XmlNsForm.QUALIFIED)
 package de.escidoc.core.domain.xcql;
