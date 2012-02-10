@@ -81,6 +81,8 @@ import org.z3950.zing.cql.CQLParseException;
 import org.z3950.zing.cql.CQLParser;
 import org.z3950.zing.cql.CQLTermNode;
 
+import de.escidoc.core.domain.sru.extradata.ExtraDataTO;
+
 /**
  *
  * @author  levan
@@ -1690,6 +1692,15 @@ public abstract class SRWDatabase {
 		response.setExtraResponseData(makeSruExtraDataType(extraResponseData
 				.toString()));
 	}
+
+    static public void setExtraResponseData(de.escidoc.core.domain.sru.SearchRetrieveResponseType response, ExtraDataTO extraData) {
+    	de.escidoc.core.domain.sru.ExtraDataType extraDataType = response.getExtraResponseData();
+    	if (extraDataType == null) {
+    		extraDataType = new de.escidoc.core.domain.sru.ExtraDataType();
+    	}
+    	extraDataType.getAny().add(extraData);
+    	response.setExtraResponseData(extraDataType);
+    }
 
     public void setMaximumRecords(int maximumRecords) {
         this.maximumRecords=maximumRecords;
