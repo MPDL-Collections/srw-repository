@@ -1323,13 +1323,13 @@ public class SRWServlet extends AxisServlet {
 //                qb[i]=(byte)query.charAt(i);
 //            query=new String(qb, "utf-8");
             // MIH: avoid NullPointerException//////////////
-            if (query != null) {
-                query = query.replaceAll("\\s+", " ");
-                byte[] qb = new byte[query.length()];
-                for (i = 0; i < query.length(); i++)
-                    qb[i] = (byte) query.charAt(i);
-                query = new String(qb, "utf-8");
-            }
+//            if (query != null) {
+//                query = query.replaceAll("\\s+", " ");
+//                byte[] qb = new byte[query.length()];
+//                for (i = 0; i < query.length(); i++)
+//                    qb[i] = (byte) query.charAt(i);
+//                query = new String(qb, "utf-8");
+//            }
             ///////////////////////////////////////////////
             de.escidoc.core.domain.sru.SearchRetrieveRequestType request = new de.escidoc.core.domain.sru.SearchRetrieveRequestType();
             request.setQuery(query);
