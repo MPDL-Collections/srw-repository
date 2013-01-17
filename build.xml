@@ -12,6 +12,8 @@
 
     <target name="clean" description="Clean all build products.">
         <echo>Ant Home: ${ant.home}</echo>
+        <mkdir dir="${build.dir}"/>
+        <mkdir dir="${dist.dir}"/>
 		<delete includeEmptyDirs="true">
 			<fileset dir="${build.dir}">
 				<include name="**/*"/>
